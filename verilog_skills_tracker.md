@@ -1,0 +1,389 @@
+# Verilog Skills Tracker – FPGA Guitar Effects Pedal
+
+Track your progress through the core Verilog skills needed for the 4-month roadmap.
+
+---
+
+## Syntax & Structure
+
+### Module Basics
+- [ ] Module definition, parameters, ports (input/output/inout)
+  - Date learned: ______________
+
+- [ ] Parameterized modules (defparam, parameter declarations)
+  - Date learned: ______________
+
+- [ ] Port declarations and port mapping in instantiation
+  - Date learned: ______________
+
+### Data Types & Variables
+- [ ] Wire, reg, and logic declarations
+  - Date learned: ______________
+
+- [ ] Bit-width declarations and vector indexing
+  - Date learned: ______________
+
+- [ ] Signed vs. unsigned operations
+  - Date learned: ______________
+
+### Control Structures
+- [ ] Always blocks: combinational (`always @(*)`)
+  - Date learned: ______________
+
+- [ ] Always blocks: sequential (`always @(posedge clk)`)
+  - Date learned: ______________
+
+- [ ] Always blocks: latches and sensitivity lists
+  - Date learned: ______________
+
+- [ ] If/else, case statements
+  - Date learned: ______________
+
+### Operators
+- [ ] Arithmetic operators (+, -, *, /)
+  - Date learned: ______________
+
+- [ ] Bitwise operators (&, |, ^, ~)
+  - Date learned: ______________
+
+- [ ] Shift operators (<<, >>)
+  - Date learned: ______________
+
+- [ ] Ternary operator (?:)
+  - Date learned: ______________
+
+---
+
+## Testbenches
+
+### Basic Testbench Structure
+- [ ] Writing a testbench module (no ports)
+  - Date learned: ______________
+
+- [ ] Initial blocks for stimulus generation
+  - Date learned: ______________
+
+- [ ] Clock generation and reset sequencing
+  - Date learned: ______________
+
+- [ ] Time delay and `#` timing directives
+  - Date learned: ______________
+
+### Debugging & Output
+- [ ] `$display` and `$write` for console output
+  - Date learned: ______________
+
+- [ ] `$monitor` for continuous signal tracking
+  - Date learned: ______________
+
+- [ ] `$finish` to end simulation gracefully
+  - Date learned: ______________
+
+### File I/O & Test Vectors
+- [ ] `$readmemb` to load binary test data
+  - Date learned: ______________
+
+- [ ] `$readmemh` to load hex test data
+  - Date learned: ______________
+
+- [ ] `$writememb` to save test results
+  - Date learned: ______________
+
+- [ ] File output with `$fopen`, `$fwrite`
+  - Date learned: ______________
+
+### Waveform Inspection
+- [ ] Generating VCD files (dump statements)
+  - Date learned: ______________
+
+- [ ] `$dumpvars` for selective signal capture
+  - Date learned: ______________
+
+- [ ] Viewing VCD in GTKWave
+  - Date learned: ______________
+
+---
+
+## Hardware Design Patterns
+
+### Module Instantiation & Hierarchy
+- [ ] Instantiating submodules in a parent module
+  - Date learned: ______________
+
+- [ ] Port mapping (named and positional)
+  - Date learned: ______________
+
+- [ ] Hierarchical module organization
+  - Date learned: ______________
+
+### Pipeline Design
+- [ ] Creating pipeline stages with intermediate registers
+  - Date learned: ______________
+
+- [ ] Understanding latency vs. throughput
+  - Date learned: ______________
+
+- [ ] Data and control signal propagation through stages
+  - Date learned: ______________
+
+### Handshaking & Flow Control
+- [ ] Valid/ready signaling basics
+  - Date learned: ______________
+
+- [ ] Implementing a valid/ready register stage
+  - Date learned: ______________
+
+- [ ] Stalling and back-pressure handling
+  - Date learned: ______________
+
+- [ ] AXI Stream lite protocol (basic familiarity)
+  - Date learned: ______________
+
+### Clock & Reset
+- [ ] Synchronous reset assertion and deassertion
+  - Date learned: ______________
+
+- [ ] Reset distribution in multi-module designs
+  - Date learned: ______________
+
+- [ ] Clock domain basics (single domain, intro to CDC)
+  - Date learned: ______________
+
+---
+
+## Numeric Design
+
+### Fixed-Point Arithmetic
+- [ ] Understanding fixed-point representation
+  - Date learned: ______________
+
+- [ ] Bit-width calculations for products and sums
+  - Date learned: ______________
+
+- [ ] Scaling and shifting for fixed-point operations
+  - Date learned: ______________
+
+- [ ] Rounding and truncation in fixed-point
+  - Date learned: ______________
+
+### Saturation & Overflow
+- [ ] Detecting overflow conditions
+  - Date learned: ______________
+
+- [ ] Implementing saturation logic
+  - Date learned: ______________
+
+- [ ] Wrapping vs. saturating behavior
+  - Date learned: ______________
+
+### Parameterized Arithmetic
+- [ ] Writing generic multipliers and adders with parameters
+  - Date learned: ______________
+
+- [ ] Bit-width propagation through parameterized modules
+  - Date learned: ______________
+
+- [ ] MATLAB/Python reference modeling for numeric validation
+  - Date learned: ______________
+
+---
+
+## Integration & System Design
+
+### Module Hierarchy
+- [ ] Creating a wrapper or top-level module
+  - Date learned: ______________
+
+- [ ] Connecting multiple submodules in sequence (pipeline)
+  - Date learned: ______________
+
+- [ ] Managing port fan-out and naming consistency
+  - Date learned: ______________
+
+### Audio DSP Specifics
+- [ ] Structuring a gain stage module
+  - Date learned: ______________
+
+- [ ] Building a simple IIR filter in hardware
+  - Date learned: ______________
+
+- [ ] Understanding latency in DSP blocks
+  - Date learned: ______________
+
+- [ ] Coefficient storage (parameters, ROM, BRAM)
+  - Date learned: ______________
+
+### System-Level Thinking
+- [ ] Defining clear module interfaces
+  - Date learned: ______________
+
+- [ ] Documenting assumptions (bit widths, timing, latency)
+  - Date learned: ______________
+
+- [ ] Planning for testability in larger designs
+  - Date learned: ______________
+
+---
+
+## Synthesis & Tool-Specific
+
+### Icarus Verilog
+- [ ] Running `iverilog` from command line
+  - Date learned: ______________
+
+- [ ] Compiling and running simulations
+  - Date learned: ______________
+
+- [ ] Debugging with `-g` flag and GTKWave
+  - Date learned: ______________
+
+### Vivado Synthesis
+- [ ] Creating a new Vivado project and adding Verilog files
+  - Date learned: ______________
+
+- [ ] Running synthesis and viewing reports
+  - Date learned: ______________
+
+- [ ] Recognizing inferred vs. explicit resources (multipliers, adders, BRAM)
+  - Date learned: ______________
+
+- [ ] Constraint files (XDC) for timing and I/O
+  - Date learned: ______________
+
+### Implementation & Place & Route
+- [ ] Running place and route in Vivado
+  - Date learned: ______________
+
+- [ ] Interpreting timing reports
+  - Date learned: ______________
+
+- [ ] Post-synthesis and post-PAR simulation
+  - Date learned: ______________
+
+---
+
+## Verification & Testing
+
+### Testbench Patterns
+- [ ] Writing reusable testbench modules
+  - Date learned: ______________
+
+- [ ] Test vector generation (manual and scripted)
+  - Date learned: ______________
+
+- [ ] Assertion-based checking
+  - Date learned: ______________
+
+### Comparison Against Reference
+- [ ] Loading test vectors from MATLAB/Python CSV or binary
+  - Date learned: ______________
+
+- [ ] Sample-by-sample output comparison in testbench
+  - Date learned: ______________
+
+- [ ] Error reporting and debugging mismatches
+  - Date learned: ______________
+
+### Waveform Analysis
+- [ ] Inspecting timing in GTKWave
+  - Date learned: ______________
+
+- [ ] Measuring signal latency and propagation
+  - Date learned: ______________
+
+- [ ] Verifying control signal sequences
+  - Date learned: ______________
+
+---
+
+## Checkpoint Milestones (Roadmap-Aligned)
+
+Track when you complete each module's Verilog milestone:
+
+### Module 1 – Input Register (Weeks 1–2)
+- [ ] 8–16-bit register module written
+  - Date completed: ______________
+- [ ] Simple testbench written and passing
+  - Date completed: ______________
+
+### Module 2 – Fixed-Point Arithmetic (Weeks 3–4)
+- [ ] 8×8 or 16×16 multiplier/adder module written
+  - Date completed: ______________
+- [ ] Testbench comparing against MATLAB reference
+  - Date completed: ______________
+
+### Module 3 – Stream Register (Weeks 5–6)
+- [ ] Valid/ready stream register module written
+  - Date completed: ______________
+- [ ] Flow-control testbench passing
+  - Date completed: ______________
+
+### Module 4 – First DSP Block (Weeks 7–8)
+- [ ] Gain or simple IIR filter module written
+  - Date completed: ______________
+- [ ] Comprehensive testbench with MATLAB reference vectors
+  - Date completed: ______________
+- [ ] VCD waveform generated and inspected
+  - Date completed: ______________
+
+### Module 5 – Effect Chain Wrapper (Weeks 9–10)
+- [ ] Multi-block pipeline module written
+  - Date completed: ______________
+- [ ] Integration testbench passing
+  - Date completed: ______________
+- [ ] Organized project directory structure
+  - Date completed: ______________
+
+### Module 6 – Second DSP Block (Weeks 11–12)
+- [ ] Delay, distortion, or modulation module written
+  - Date completed: ______________
+- [ ] Standalone testbench passing
+  - Date completed: ______________
+- [ ] Integrated with Module 5 and tested
+  - Date completed: ______________
+
+### Synthesis & Verification (Weeks 13–14)
+- [ ] All modules synthesize in Vivado
+  - Date completed: ______________
+- [ ] Post-synthesis simulation testbenches pass
+  - Date completed: ______________
+
+---
+
+## Notes & Reflections
+
+Use this section to capture insights as you learn:
+
+### Challenging Concepts
+- 
+- 
+- 
+
+### Breakthroughs & Aha Moments
+- 
+- 
+- 
+
+### Resources That Helped
+- 
+- 
+- 
+
+### Personal Roadblocks & How You Solved Them
+- 
+- 
+- 
+
+---
+
+## Quick Reference: Verilog Reminders
+
+**Always use testbenches.** A passing testbench is not optional; it's your confidence foundation.
+
+**Tie Verilog to MATLAB.** Every numeric block should have a MATLAB reference or comparison.
+
+**Learn by doing.** Build the six checkpoint modules in order; don't try to master Verilog in isolation.
+
+**Document as you go.** Bit widths, latencies, and assumptions matter; write them down immediately.
+
+**Keep it simple.** Six simple Verilog blocks are better than one complex block. Iteration beats perfection.
