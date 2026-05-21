@@ -7,21 +7,21 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 ## Syntax & Structure
 
 ### Module Basics
-- [ ] Module definition, parameters, ports (input/output/inout)
-  - Date learned: ______________
+- [x] Module definition, parameters, ports (input/output/inout)
+  - Date learned: May 18
 
 - [ ] Parameterized modules (defparam, parameter declarations)
   - Date learned: ______________
 
-- [ ] Port declarations and port mapping in instantiation
-  - Date learned: ______________
+- [x] Port declarations and port mapping in instantiation
+  - Date learned: May 18
 
 ### Data Types & Variables
-- [ ] Wire, reg, and logic declarations
-  - Date learned: ______________
+- [x] Wire, reg, and logic declarations
+  - Date learned: May 18
 
-- [ ] Bit-width declarations and vector indexing
-  - Date learned: ______________
+- [x] Bit-width declarations and vector indexing
+  - Date learned: May 18
 
 - [ ] Signed vs. unsigned operations
   - Date learned: ______________
@@ -30,8 +30,8 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [ ] Always blocks: combinational (`always @(*)`)
   - Date learned: ______________
 
-- [ ] Always blocks: sequential (`always @(posedge clk)`)
-  - Date learned: ______________
+- [x] Always blocks: sequential (`always @(posedge clk)`)
+  - Date learned: May 20
 
 - [ ] Always blocks: latches and sensitivity lists
   - Date learned: ______________
@@ -43,8 +43,8 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [ ] Arithmetic operators (+, -, *, /)
   - Date learned: ______________
 
-- [ ] Bitwise operators (&, |, ^, ~)
-  - Date learned: ______________
+- [x] Bitwise operators (&, |, ^, ~)
+  - Date learned: May 18
 
 - [ ] Shift operators (<<, >>)
   - Date learned: ______________
@@ -57,27 +57,27 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 ## Testbenches
 
 ### Basic Testbench Structure
-- [ ] Writing a testbench module (no ports)
-  - Date learned: ______________
+- [x] Writing a testbench module (no ports)
+  - Date learned: May 18
 
-- [ ] Initial blocks for stimulus generation
-  - Date learned: ______________
+- [x] Initial blocks for stimulus generation
+  - Date learned: May 18
 
-- [ ] Clock generation and reset sequencing
-  - Date learned: ______________
+- [x] Clock generation and reset sequencing
+  - Date learned: May 18
 
-- [ ] Time delay and `#` timing directives
-  - Date learned: ______________
+- [x] Time delay and `#` timing directives
+  - Date learned: May 18
 
 ### Debugging & Output
-- [ ] `$display` and `$write` for console output
-  - Date learned: ______________
+- [x] `$display` and `$write` for console output
+  - Date learned: May 20
 
 - [ ] `$monitor` for continuous signal tracking
   - Date learned: ______________
 
-- [ ] `$finish` to end simulation gracefully
-  - Date learned: ______________
+- [x] `$finish` to end simulation gracefully
+  - Date learned: May 20
 
 ### File I/O & Test Vectors
 - [ ] `$readmemb` to load binary test data
@@ -93,28 +93,28 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
   - Date learned: ______________
 
 ### Waveform Inspection
-- [ ] Generating VCD files (dump statements)
-  - Date learned: ______________
+- [x] Generating VCD files (dump statements)
+  - Date learned: May 18
 
-- [ ] `$dumpvars` for selective signal capture
-  - Date learned: ______________
+- [x] `$dumpvars` for selective signal capture
+  - Date learned: May 18
 
-- [ ] Viewing VCD in GTKWave
-  - Date learned: ______________
+- [x] Viewing VCD in GTKWave
+  - Date learned: May 18
 
 ---
 
 ## Hardware Design Patterns
 
 ### Module Instantiation & Hierarchy
-- [ ] Instantiating submodules in a parent module
-  - Date learned: ______________
+- [x] Instantiating submodules in a parent module
+  - Date learned: May 18
 
-- [ ] Port mapping (named and positional)
-  - Date learned: ______________
+- [x] Port mapping (named and positional)
+  - Date learned: May 18
 
-- [ ] Hierarchical module organization
-  - Date learned: ______________
+- [x] Hierarchical module organization
+  - Date learned: May 20
 
 ### Pipeline Design
 - [ ] Creating pipeline stages with intermediate registers
@@ -228,11 +228,11 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 ## Synthesis & Tool-Specific
 
 ### Icarus Verilog
-- [ ] Running `iverilog` from command line
-  - Date learned: ______________
+- [x] Running `iverilog` from command line
+  - Date learned: May 18
 
-- [ ] Compiling and running simulations
-  - Date learned: ______________
+- [x] Compiling and running simulations
+  - Date learned: May 18
 
 - [ ] Debugging with `-g` flag and GTKWave
   - Date learned: ______________
@@ -285,8 +285,8 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
   - Date learned: ______________
 
 ### Waveform Analysis
-- [ ] Inspecting timing in GTKWave
-  - Date learned: ______________
+- [x] Inspecting timing in GTKWave
+  - Date learned: May 18
 
 - [ ] Measuring signal latency and propagation
   - Date learned: ______________
