@@ -28,7 +28,7 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 
 ### Control Structures
 - [ ] Always blocks: combinational (`always @(*)`)
-  - Date learned: ______________
+  - Date learned: ____________
 
 - [x] Always blocks: sequential (`always @(posedge clk)`)
   - Date learned: May 20
@@ -36,21 +36,21 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [ ] Always blocks: latches and sensitivity lists
   - Date learned: ______________
 
-- [ ] If/else, case statements
-  - Date learned: ______________
+- [x] If/else, case statements
+  - Date learned: May 20
 
 ### Operators
-- [ ] Arithmetic operators (+, -, *, /)
-  - Date learned: ______________
+- [x] Arithmetic operators (+, -, *, /)
+  - Date learned: May 20
 
 - [x] Bitwise operators (&, |, ^, ~)
   - Date learned: May 18
 
-- [ ] Shift operators (<<, >>)
-  - Date learned: ______________
+- [x] Shift operators (<<, >>)
+  - Date learned: May 23
 
-- [ ] Ternary operator (?:)
-  - Date learned: ______________
+- [x] Ternary operator (?:)
+  - Date learned: May 20
 
 ---
 
@@ -80,17 +80,17 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
   - Date learned: May 20
 
 ### File I/O & Test Vectors
-- [ ] `$readmemb` to load binary test data
-  - Date learned: ______________
+- [x] `$readmemb` to load binary test data
+  - Date learned: May 23
 
-- [ ] `$readmemh` to load hex test data
-  - Date learned: ______________
+- [x] `$readmemh` to load hex test data
+  - Date learned: May 23
 
 - [ ] `$writememb` to save test results
   - Date learned: ______________
 
-- [ ] File output with `$fopen`, `$fwrite`
-  - Date learned: ______________
+- [x] File output with `$fopen`, `$fwrite`
+  - Date learned: May 23
 
 ### Waveform Inspection
 - [x] Generating VCD files (dump statements)
@@ -117,8 +117,8 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
   - Date learned: May 20
 
 ### Pipeline Design
-- [ ] Creating pipeline stages with intermediate registers
-  - Date learned: ______________
+- [x] Creating pipeline stages with intermediate registers
+  - Date learned: May 23
 
 - [ ] Understanding latency vs. throughput
   - Date learned: ______________
@@ -154,24 +154,24 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 ## Numeric Design
 
 ### Fixed-Point Arithmetic
-- [ ] Understanding fixed-point representation
-  - Date learned: ______________
+- [x] Understanding fixed-point representation
+  - Date learned: May 23
 
-- [ ] Bit-width calculations for products and sums
-  - Date learned: ______________
+- [x] Bit-width calculations for products and sums
+  - Date learned: May 23
 
-- [ ] Scaling and shifting for fixed-point operations
-  - Date learned: ______________
+- [x] Scaling and shifting for fixed-point operations
+  - Date learned: May 23
 
-- [ ] Rounding and truncation in fixed-point
-  - Date learned: ______________
+- [x] Rounding and truncation in fixed-point
+  - Date learned: May 23
 
 ### Saturation & Overflow
 - [ ] Detecting overflow conditions
   - Date learned: ______________
 
-- [ ] Implementing saturation logic
-  - Date learned: ______________
+- [x] Implementing saturation logic
+  - Date learned: May 23
 
 - [ ] Wrapping vs. saturating behavior
   - Date learned: ______________
@@ -194,18 +194,18 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [ ] Creating a wrapper or top-level module
   - Date learned: ______________
 
-- [ ] Connecting multiple submodules in sequence (pipeline)
-  - Date learned: ______________
+- [x] Connecting multiple submodules in sequence (pipeline)
+  - Date learned: May 21
 
 - [ ] Managing port fan-out and naming consistency
   - Date learned: ______________
 
 ### Audio DSP Specifics
-- [ ] Structuring a gain stage module
-  - Date learned: ______________
+- [x] Structuring a gain stage module
+  - Date learned: May 21
 
-- [ ] Building a simple IIR filter in hardware
-  - Date learned: ______________
+- [x] Building a simple FIR filter in hardware
+  - Date learned: May 25
 
 - [ ] Understanding latency in DSP blocks
   - Date learned: ______________
