@@ -191,17 +191,52 @@ It is **not** intended for high-speed internal FPGA clocks or DDR-level debug, b
 - 9V pedal power input with local regulation.
 - Enclosure sized more like a larger digital stompbox than a minimal analog pedal if onboard UI grows.
 
+## AXI-Stream Effect Module Design
+
+### Passthrough Template (All Effects Use This)
+
+```verilog
+module passthrough #(parameter WIDTH = 24)(
+    input  wire tclk, rst_n,
+    input  wire [WIDTH-1:0] i_tdata,
+    input  wire i_tvalid,
+    output wire i_tready,
+    input  wire o_tready,
+    output wire o_tvalid,
+    output reg [WIDTH-1:0] o_tdata
+);
+
+assign i_tready = o_tready;        // Backpressure propagation
+assign o_tvalid = i_tvalid;        // Forward signaling
+always @(posedge tclk or negedge rst_n) begin
+    if (!rst_n) o_tdata <= {WIDTH{1'b0}};
+    else if (i_tvalid && i_tready) o_tdata <= i_tdata;
+end
+endmodule
+```
+
+**Compliance:** Handshake-driven transfers ($i_{tvalid} \land i_{tready}$), backpressure chains correctly, data stable. **Works at any pipeline position.**
+
+**Timing risk:** Combinational path $o_{tready} \to i_{tready}$ across multiple effects. **Mitigation if synthesis fails:** register $i_{tready}$ output (adds $1 \times tclk$ to backpressure propagation—imperceptible for audio).
+
+### Effect Chain Data Flow
+
+```
+ADC Pmod -I2S-> I2S RX -AXI-> FIFO -AXI-> [Effect1, Effect2, Effect3] -AXI-> I2S TX -I2S-> DAC Pmod
+```
+
+Each effect is identical template; plug/unplug without modification.
+
 ## Open technical questions
 
-These remain open and are likely good follow-up design topics:
-
-1. Exact **audio sample rate** and internal processing rate.
-2. Whether the first DSP chain is **sample-by-sample**, frame-based, or mixed.
-3. Best **AXI Stream crossbar/switch topology** for modular effect insertion/removal.
-4. Whether to keep the Pmod ADC/DAC path for the entire prototype or migrate to a codec-based interface later.
-5. Exact power architecture for clean audio performance.
-6. How presets, parameter states, and effect graphs should be stored and serialized.
-7. Details of pre-dac buffer/pre-amp
+1. **Audio sample rate** and internal processing clock.
+2. **Sample-by-sample vs. frame-based** DSP.
+3. **Crossbar topology** for dynamic effect reordering (fixed chains vs. runtime switching).
+4. Pmod ADC/DAC vs. codec migration path.
+5. Power distribution for clean audio.
+6. **Preset serialization** (JSON, binary, where stored).
+7. Pre-DAC buffer/preamp specs.
+8. **Parameter control interface:** AXI-Lite registers? AXI-Stream sideband? How does Linux adjust effect knobs?
 
 ## Recommended framing for future LLM assistance
 
