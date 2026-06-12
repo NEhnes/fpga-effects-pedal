@@ -1,0 +1,22 @@
+RESET
+    clear everything
+
+else normal operation
+    sample ws, sd
+
+    if ws toggled:
+        start new word
+        store MSB
+
+    else if receiving word:
+        if last bit:
+            emit completed word
+            assert valid
+            go idle
+        else:
+            store bit
+            increment counter
+
+    if valid && ready:
+        handshake happens
+        clear valid

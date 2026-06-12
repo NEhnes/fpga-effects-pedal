@@ -1,0 +1,36 @@
+module purpose:
+
+- intake SCK, WS, SD raw data
+
+- compile words from bit-by-bit input
+
+- route the compiled word as output
+
+
+
+lines:
+
+SCK (clock)
+- literally just a square wave clock signal
+- can have multiple sources; transmitter, receiver, controller, or something else.
+- sck signal source doesnt matter, but transmitter/receiver MUST be synced
+
+SD (data)
+- transmits data using two's complement
+- MSB first, LSB last (varies based on word length)
+- transmitter/receiver can have different word lengths
+    - if receiver gets fewer bits than expected, LSBs are 0
+    - if receiver gets more bits than expected, extra LSBs truncated
+- transmitter send can be posedge or negedge
+- transmitter new data latch must be posedge
+- received new data must latch on posedge
+
+WS (word select)
+- signals new word coming (MSB is sent 1 cycle after WS changes)
+- bit to indicate which channel being used
+    - WS=0 -> channel 1 -> left
+    - WS=1 -> channel 2 -> right
+- may change on posedge or negedge
+- receiver new ws latch must be on posedge
+
+Some BS about timing delays - may need to look into that later

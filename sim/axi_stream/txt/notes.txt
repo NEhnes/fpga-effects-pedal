@@ -1,0 +1,28 @@
+
+EVERY MODULE NEEDS AN AXI EVEN IF ALWAYS READY/VALID
+- THIS IS SO THAT I CAN CONNECT TO MODULES THAT HAVE ACTUAL BEHAVIOUR (TRANSCEIVER, FIFO, ETC)
+
+video + claude:
+
+Single Channel Handshake
+Master & slave communicate via 32-bit transmission line.
+
+mandatory lines:
+Data transfer → DATA line
+No data? → VALID line (sender has valid data)
+Slave busy? → READY line (receiver ready)
+
+optional lines:
+Packet end? → LAST line (final flit)
+Don't want all of the last flit? -> KEEP/STRB line (selectively allow last flit bits)
+Identify streams? -> ID line (for multiple streams)
+Need destination? -> DEST line (specify where packet goes)
+Any other case-specific use -> USER line (user-defined for general use)
+
+
+Golden Rule: Data transfers when VALID && READY
+Flit: chunk of data sent per clock cycle
+
+
+
+actually written as: tdata, tvalid, ...

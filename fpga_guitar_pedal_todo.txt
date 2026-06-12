@@ -1,2 +1,0 @@
-- Add in AI workflow development (for creating effects)
-    - Claude skill, n8n automation, maybe even full web UI (time permitting - vibe coded)

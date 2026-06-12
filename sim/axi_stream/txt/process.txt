@@ -1,0 +1,17 @@
+1. create basic sender/master
+- operates based on clk signal
+- generates own signal (counter or other simple thing)
+- send if checks pass
+
+2. create simple receiver
+- receives if checks pass
+- performs simple operation on data
+
+3. create testbench
+- create cases where signals are not in sync to verify READY/VALID
+
+
+
+******NOTE*******
+
+i actually changed it to be a combined middleman module, more similar to what will actually be used in my project.
