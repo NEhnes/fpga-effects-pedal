@@ -21,6 +21,10 @@ module passthrough #(
 assign i_tready = o_tready;
 assign o_tvalid = i_tvalid;
 
+
+wire [WIDTH-1:0] processed;
+assign processed = i_tdata;
+
 always @(posedge tclk or negedge rst_n) begin
 
     // clear bad data on reset
@@ -30,7 +34,7 @@ always @(posedge tclk or negedge rst_n) begin
     
     else if (i_tvalid && o_tready) begin
         // register updates when send and receive are good
-        o_tdata <= i_tdata;
+        o_tdata <= processed;
     end
 end
 endmodule
