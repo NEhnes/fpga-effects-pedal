@@ -97,8 +97,19 @@ module sub_gain #(
     wire signed [(WIDTH + 16) - 1:0] temp;
     assign temp = i_sample * gain_q114;
 
-    wire signed [(WIDTH + 16) - 1:0] rounded = temp + (1 << (FRAC_BITS - 1)); // round product
-    assign o_sample = rounded >>> FRAC_BITS; // logical shift to preserve sign
+    wire signed [(WIDTH + 16) - 1:0] rounded = temp + (1 << (FRAC_BITS - 1));
+    wire signed [(WIDTH + 16) - 1:0] shifted = rounded >>> FRAC_BITS;
+
+    // Saturation: clamp to [-(2^(WIDTH-1)), 2^(WIDTH-1)-1]
+    localparam signed [WIDTH-1:0] MAX_VAL =  {1'b0, {(WIDTH-1){1'b1}}};  //  2^(WIDTH-1) - 1
+    localparam signed [WIDTH-1:0] MIN_VAL =  {1'b1, {(WIDTH-1){1'b0}}};  // -2^(WIDTH-1)
+
+    wire overflow  = (shifted > MAX_VAL);
+    wire underflow = (shifted < MIN_VAL);
+
+    assign o_sample = overflow  ? MAX_VAL :
+                      underflow ? MIN_VAL :
+                                  shifted[WIDTH-1:0];
 endmodule
 
 module sub_clip #(
@@ -114,29 +125,3 @@ module sub_clip #(
     wire signed [WIDTH-1:0] clamped_high = (i_sample > threshold) ? threshold : i_sample;
     assign o_sample = (clamped_high < -threshold) ? -threshold : clamped_high;
 endmodule
-
-
-
-
-
-
-
-// module gain(A, CLK, D);
-
-//     input [7:0] A;
-//     input CLK;
-//     reg [15:0] W; // reg instead of wire, wire cannot hold value
-//     output reg [7:0] D;
-
-//     localparam SCALE = 8'd2; // 8 bits, decimal, value 2
-
-//     always@(posedge CLK)
-//     begin
-//         // non blocking holds the output until a predictable time
-//         // dont use assign here, assign is for combinational logic.
-//         // think of assign like wiring things together
-//         // must use registers, as wires cannot hold values, just transfer data in real-time
-//         W <= A * SCALE; // multiply by constant
-//         D <= (W > 16'd255) ? 8'd255 : W[7:0]; // cap & truncate
-//     end
-// endmodule
