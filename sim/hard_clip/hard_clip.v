@@ -5,7 +5,7 @@
  * - Dry/wet mix
  */
 
-module passthrough #(
+module hard_clip #(
     parameter WIDTH = 24,
     parameter INPUT_GAIN = 1.15,
     parameter ABS_CLIP_THRESHOLD = 1
@@ -30,13 +30,15 @@ module passthrough #(
 assign i_tready = o_tready;
 assign o_tvalid = i_tvalid;
 
-//========================
+wire [WIDTH-1:0] processed;
+
+//=========== MY SHIT ============
 
 
 
 
 
-//========================
+//================================
 
 always @(posedge tclk or negedge rst_n) begin
 
@@ -53,6 +55,32 @@ end
 endmodule
 
 
+
+
+
+/*=========== sub-module gain ============
+ * Uses fixed point math
+ * Signed 24-bit audio sample
+ * Signed Q1.14 gain value
+ * Compute truncated value
+ *======================================*/
+module sub_gain #(
+    parameter WIDTH = 24
+)(
+    input  signed [WIDTH-1:0] i_sample,
+    input  signed [15:0] gain_q115,  // Q1.15, unity gain = 0x8000 btw
+    output signed [WIDTH-1:0] o_sample
+);
+    localparam FRAC_BITS = 15;
+    wire signed [(WIDTH + 16) - 1:0] temp;
+    assign temp = i_sample * gain_q115;
+    // round product, then shift
+    wire signed [(WIDTH + 16) - 1:0] rounded = temp + (1 << (FRAC_BITS - 1));
+    assign o_sample = rounded >>> FRAC_BITS;
+endmodule
+
+// module sub_clip ()
+// endmodule
 
 
 

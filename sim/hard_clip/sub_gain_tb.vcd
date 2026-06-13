@@ -1,0 +1,55 @@
+$date
+	Fri Jun 12 22:33:59 2026
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ps
+$end
+$scope module tb_sub_gain $end
+$var wire 24 ! o_sample [23:0] $end
+$var reg 16 " gain_q115 [15:0] $end
+$var reg 24 # i_sample [23:0] $end
+$scope module dut $end
+$var wire 16 $ gain_q115 [15:0] $end
+$var wire 24 % i_sample [23:0] $end
+$var wire 40 & temp [39:0] $end
+$var wire 40 ' rounded [39:0] $end
+$var wire 24 ( o_sample [23:0] $end
+$var parameter 32 ) FRAC_BITS $end
+$var parameter 32 * WIDTH $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment Show the parameter values. $end
+$dumpall
+b11000 *
+b1111 )
+$end
+#0
+$dumpvars
+b111100000000000000000000 (
+b1111100000000000000000000100000000000000 '
+b1111100000000000000000000000000000000000 &
+b100000000000000000000 %
+b1000000000000000 $
+b100000000000000000000 #
+b1000000000000000 "
+b111100000000000000000000 !
+$end
+#10000
+b10000000000000000000 !
+b10000000000000000000 (
+b10000000000000000000100000000000000 '
+b10000000000000000000000000000000000 &
+b100000000000000 "
+b100000000000000 $
+#20000
+b0 !
+b0 (
+b100000000000000 '
+b0 &
+b0 #
+b0 %
+#30000
