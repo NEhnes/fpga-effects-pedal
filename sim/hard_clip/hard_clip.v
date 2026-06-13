@@ -9,8 +9,8 @@ module hard_clip #(
     parameter WIDTH = 24
 )(
     // effect-specific parameters
-    input  wire [15:0] input_gain,
-    input  wire [15:0] clip_q016,
+    input  wire [15:0] _input_gain,
+    input  wire [15:0] _normalized_clip,
 
 
     input  wire        tclk,
@@ -37,17 +37,25 @@ wire [WIDTH-1:0] processed;
 
 //=========== MY SHIT ============
 
+wire [15:0] input_gain;
+wire [15:0] normalized_clip;
+
+// set undefined paramaters as unity (no effect)
+assign input_gain = (_input_gain === 16'bx) ? 16'h0001 : _input_gain;
+assign normalized_clip = (_normalized_clip === 16'bx) ? 16'h0001 : _normalized_clip;
+
+
+wire [WIDTH-1:0] s1s2;
+
 sub_gain s1 (
     .i_sample(i_tdata),
     .gain_q114(input_gain),
     .o_sample(s1s2)
 );
 
-wire [WIDTH-1:0] s1s2;
-
 sub_clip s2 (
     .i_sample(s1s2),
-    .clip_q016(clip_q016),
+    .clip_q016(normalized_clip),
     .o_sample(processed)
 );
 
@@ -100,8 +108,8 @@ module sub_clip #(
     input         [15:0] clip_q016,  // Q0.15 (+/- 1.0)
     output signed [WIDTH-1:0] o_sample
 );
-    // Sign-extend threshold from 16-bit to WIDTH-bit
-    wire signed [WIDTH-1:0] threshold = {{(WIDTH-16){clip_q016[15]}}, clip_q016};
+    // Scale threshold from 16-bit Q0.15 up to WIDTH-bit sample domain
+    wire signed [WIDTH-1:0] threshold = clip_q016 <<< (WIDTH - 16);
     
     wire signed [WIDTH-1:0] clamped_high = (i_sample > threshold) ? threshold : i_sample;
     assign o_sample = (clamped_high < -threshold) ? -threshold : clamped_high;
