@@ -6,10 +6,13 @@
  */
 
 module hard_clip #(
-    parameter WIDTH = 24,
-    parameter INPUT_GAIN = 1.15,
-    parameter ABS_CLIP_THRESHOLD = 1
+    parameter WIDTH = 24
 )(
+    // effect-specific parameters
+    input  wire [15:0] input_gain,
+    input  wire [15:0] clip_q016,
+
+
     input  wire        tclk,
     input  wire        rst_n,
 
@@ -34,8 +37,19 @@ wire [WIDTH-1:0] processed;
 
 //=========== MY SHIT ============
 
+sub_gain s1 (
+    .i_sample(i_tdata),
+    .gain_q114(input_gain),
+    .o_sample(s1s2)
+);
 
+wire [WIDTH-1:0] s1s2;
 
+sub_clip s2 (
+    .i_sample(s1s2),
+    .clip_q016(clip_q016),
+    .o_sample(processed)
+);
 
 
 //================================
@@ -68,19 +82,30 @@ module sub_gain #(
     parameter WIDTH = 24
 )(
     input  signed [WIDTH-1:0] i_sample,
-    input  signed [15:0] gain_q115,  // Q1.15, unity gain = 0x8000 btw
+    input  signed [15:0] gain_q114,  // SIGNED Q1.14, unity gain = 0x4000 btw
     output signed [WIDTH-1:0] o_sample
 );
-    localparam FRAC_BITS = 15;
+    localparam FRAC_BITS = 14;
     wire signed [(WIDTH + 16) - 1:0] temp;
-    assign temp = i_sample * gain_q115;
-    // round product, then shift
-    wire signed [(WIDTH + 16) - 1:0] rounded = temp + (1 << (FRAC_BITS - 1));
-    assign o_sample = rounded >>> FRAC_BITS;
+    assign temp = i_sample * gain_q114;
+
+    wire signed [(WIDTH + 16) - 1:0] rounded = temp + (1 << (FRAC_BITS - 1)); // round product
+    assign o_sample = rounded >>> FRAC_BITS; // logical shift to preserve sign
 endmodule
 
-// module sub_clip ()
-// endmodule
+module sub_clip #(
+    parameter WIDTH = 24
+)(
+    input  signed [WIDTH-1:0] i_sample,
+    input         [15:0] clip_q016,  // Q0.15 (+/- 1.0)
+    output signed [WIDTH-1:0] o_sample
+);
+    // Sign-extend threshold from 16-bit to WIDTH-bit
+    wire signed [WIDTH-1:0] threshold = {{(WIDTH-16){clip_q016[15]}}, clip_q016};
+    
+    wire signed [WIDTH-1:0] clamped_high = (i_sample > threshold) ? threshold : i_sample;
+    assign o_sample = (clamped_high < -threshold) ? -threshold : clamped_high;
+endmodule
 
 
 
