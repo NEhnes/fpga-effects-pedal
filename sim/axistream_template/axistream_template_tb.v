@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
-`include "passthrough_axi.v"
+`include "axistream_template.v"
 
-module passthrough_axi_tb;
+module axistream_template_tb;
 
   // Parameters
   parameter WIDTH = 24;
@@ -261,8 +261,8 @@ module passthrough_axi_tb;
 
   // Waveform dump
   initial begin
-    $dumpfile("passthrough_axi_tb.vcd");
-    $dumpvars(0, passthrough_axi_tb);
+    $dumpfile("axistream_template_tb.vcd");
+    $dumpvars(0, axistream_template_tb);
   end
 
 endmodule
