@@ -1,6 +1,12 @@
 module passthrough #(
     parameter WIDTH = 24
 )(
+    // === ADD EFFECT INPUTS HERE ===
+
+
+    // ==============================
+
+
     input  wire        tclk,
     input  wire        rst_n,
 
@@ -25,6 +31,11 @@ assign o_tvalid = i_tvalid;
 wire [WIDTH-1:0] processed;
 assign processed = i_tdata;
 
+// === ADD SUB-MODULE ASSIGNMENTS HERE ===
+
+
+// ========================================
+
 always @(posedge tclk or negedge rst_n) begin
 
     // clear bad data on reset
@@ -38,3 +49,8 @@ always @(posedge tclk or negedge rst_n) begin
     end
 end
 endmodule
+
+// ======= ADD SUB-MODULES HERES =======
+
+
+// =====================================
