@@ -1,0 +1,7 @@
+EXAMPLE PYTHON SCRIPT CALLS
+
+
+python3 wav_to_hex24.py guitar_sample.wav guitar_sample.hex --channel L
+
+
+python3 hex24_to_wav.py fpga_output.hex fpga_output.wav --rate 48000 --channels 1
