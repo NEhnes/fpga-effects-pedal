@@ -90,7 +90,7 @@ module sub_gain #(
     parameter WIDTH = 24
 )(
     input  signed [WIDTH-1:0] i_sample,
-    input  signed [15:0] gain_q114,  // SIGNED Q1.14, unity gain = 0x4000 btw
+    input  signed [15:0] gain_q114,  // SIGNED Q1.14, unity gain = 0x4000
     output signed [WIDTH-1:0] o_sample
 );
     localparam FRAC_BITS = 14;
@@ -101,8 +101,9 @@ module sub_gain #(
     wire signed [(WIDTH + 16) - 1:0] shifted = rounded >>> FRAC_BITS;
 
     // Saturation: clamp to [-(2^(WIDTH-1)), 2^(WIDTH-1)-1]
-    localparam signed [WIDTH-1:0] MAX_VAL =  {1'b0, {(WIDTH-1){1'b1}}};  //  2^(WIDTH-1) - 1
-    localparam signed [WIDTH-1:0] MIN_VAL =  {1'b1, {(WIDTH-1){1'b0}}};  // -2^(WIDTH-1)
+    // FIX: Properly construct signed MIN/MAX values
+    localparam signed [WIDTH-1:0] MAX_VAL =  (1 << (WIDTH-1)) - 1;
+    localparam signed [WIDTH-1:0] MIN_VAL = -(1 << (WIDTH-1));
 
     wire overflow  = (shifted > MAX_VAL);
     wire underflow = (shifted < MIN_VAL);
