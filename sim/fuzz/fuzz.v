@@ -9,11 +9,40 @@
  * - 1-pole lowpass tone control (8-bit coefficient)
  * - AXI-Stream handshake with direct backpressure coupling
  *
- * Architecture: Pre-Gain -> Asymmetric Clip -> Tone LPF -> Output
+ * Architecture:
+ * - Pre-Gain -> Asymmetric Clip -> Tone LPF -> Output
  *
- * References:
- * - sim/fuzz/fuzz-instructions.md
- * - sim/hard_clip/hard_clip.v  (sub_gain reused here)
+ *==============================================================
+ * PARAMETER CONFIGURATION
+ *==============================================================
+ *
+ * pre_gain (16-bit Q1.14 signed)
+ *   Absolute range:    0x8000 (-4.0×) to 0x7FFF (+3.9999×)
+ *   Usable range:      0xC000 (-1.0×) to 0x6000 (+1.5×)
+ *   Unity gain:        0x4000 (1.0×)
+ *   Note: Values beyond ±2.0× cause saturation unless input is quiet.
+ *         Higher gains useful for aggressive overdrive.
+ *
+ * pos_clip_thresh (16-bit Q0.16 unsigned)
+ *   Absolute range:    0x0000 (clips to 0) to 0xFFFF (nearly no clipping)
+ *   Usable range:      0x2000 (+12.5% headroom) to 0xE000 (+87.5% headroom)
+ *   Scaled to 24-bit:  0x2000 << 8 to 0xE000 << 8
+ *   Note: Controls positive clipping threshold. Set ≥ neg_clip_thresh
+ *         for consistent asymmetric character.
+ *
+ * neg_clip_thresh (16-bit Q0.16 unsigned)
+ *   Absolute range:    0x0000 (no negative clipping) to 0xFFFF (maximum clipping)
+ *   Usable range:      0x2000 (+12.5% headroom) to 0xE000 (+87.5% headroom)
+ *   Scaled to 24-bit:  0x2000 << 8 to 0xE000 << 8
+ *   Note: Controls negative clipping threshold. Different values from
+ *         pos_clip_thresh create asymmetric fuzz character.
+ *
+ * tone_coeff (8-bit unsigned)
+ *   Absolute range:    0x00 (bypass, brightest) to 0xFF (max filter, darkest)
+ *   Usable range:      0x00 to 0xFF (all values valid)
+ *   Recommended:       0x00-0x40 (subtle filtering) to 0xA0-0xFF (dark tone)
+ *   Note: Only parameter safe across entire register width.
+ *         0 = bright/transparent, 255 = maximum lowpass attenuation.
  *==============================================================*/
 
 module fuzz #(
