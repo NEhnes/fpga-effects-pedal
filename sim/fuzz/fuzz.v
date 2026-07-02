@@ -10,7 +10,23 @@
  * - AXI-Stream handshake with direct backpressure coupling
  *
  * Architecture:
- * - Pre-Gain -> Asymmetric Clip -> Tone LPF -> Output
+ * - Pre-Gain -> Asymmetric Clip -> Tone LPF -> Output Gain -> Output
+ *
+ * Output Gain:
+ *   Auto-calculated from the average of pos_clip_thresh and neg_clip_thresh.
+ *   Rationale: lower clip thresholds produce heavier saturation and higher
+ *   perceived loudness (waveform flattens toward square wave). The output
+ *   gain compensates by attenuating proportionally, keeping perceived level
+ *   more consistent across fuzz settings.
+ *
+ *   Formula:
+ *     avg_thresh   = (pos_clip_thresh + neg_clip_thresh) >> 1  // Q0.16
+ *     output_gain  = avg_thresh[15:2]                          // Q1.14 signed
+ *
+ *   Range: 0x0000 (silence) to 0x3FFF (~0.999× unity)
+ *   At heavy clipping (thresholds ≈ 0x4000): gain ≈ 0x1000 (0.25×, -12 dB)
+ *   At light clipping (thresholds ≈ 0xE000): gain ≈ 0x3800 (0.875×, -1.2 dB)
+ *   At max thresholds (0xFFFF):               gain ≈ 0x3FFF (~unity)
  *
  *==============================================================
  * PARAMETER CONFIGURATION
@@ -81,6 +97,7 @@ module fuzz #(
     wire signed [WIDTH-1:0] clipped;
     wire signed [WIDTH-1:0] tone_filtered;
     reg  signed [WIDTH-1:0] tone_z1;  // previous filter state
+    wire signed [WIDTH-1:0] gained_out;  // output gain stage result
 
     //==========================================================
     // Stage 1: Pre-gain (signed Q1.14 multiplication)
@@ -113,6 +130,26 @@ module fuzz #(
     );
 
     //==========================================================
+    // Stage 4: Output gain (auto-compensation from clip thresholds)
+    //
+    // Auto-calculate gain coefficient as the average of the two
+    // clip thresholds, scaled to Q1.14.
+    //   avg = (pos_clip_thresh + neg_clip_thresh) >> 1  (Q0.16)
+    //   gain_coeff = {2'b0, avg[15:2]}                   (Q1.14, always ≤ 0.999)
+    //
+    // At max thresholds (0xFFFF): gain_coeff ≈ 0x3FFF (≈ unity)
+    // At heavy clipping (0x4000): gain_coeff ≈ 0x1000 (0.25×)
+    //==========================================================
+    wire [15:0] outgain_avg = (pos_clip_thresh + neg_clip_thresh) >> 1;
+    wire signed [15:0] outgain_coeff = {2'b0, outgain_avg[15:2]};
+
+    sub_gain #(.WIDTH(WIDTH)) outgain_stage (
+        .i_sample  (tone_filtered),
+        .gain_q114 (outgain_coeff),
+        .o_sample  (gained_out)
+    );
+
+    //==========================================================
     // Output register — gated by valid handshake
     //==========================================================
     always @(posedge tclk or negedge rst_n) begin
@@ -120,7 +157,7 @@ module fuzz #(
             o_tdata <= {WIDTH{1'b0}};
             tone_z1 <= {WIDTH{1'b0}};
         end else if (i_tvalid && o_tready) begin
-            o_tdata   <= tone_filtered;
+            o_tdata   <= gained_out;
             tone_z1   <= tone_filtered;
         end
     end
