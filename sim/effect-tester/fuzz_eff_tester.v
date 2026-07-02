@@ -105,8 +105,8 @@ module fuzz_eff_tester();
     // ---- Configure effect with BALANCED/MODERATE parameters ----
     // CLASSIC DIODE OVERDRIVE: Moderate gain boost + Mid-level clipping window
     pre_gain        = 16'h7000;  // Signed Q4.12 format: 7.0x boost (or Max Unsigned)
-    pos_clip_thresh = 16'h2000;  // Moderate ceiling ~0.125 (Q0.16)
-    neg_clip_thresh = 16'h2000;  // Moderate floor ~0.125 (Q0.16)
+    pos_clip_thresh = 16'h0800;  // Moderate ceiling ~0.125 (Q0.16)
+    neg_clip_thresh = 16'h0800;  // Moderate floor ~0.125 (Q0.16)
     tone_coeff      = 8'h20;     // Mild low-pass filtering (smooths harsh highs without erasing the wave shape)
 
     // ---- Open files ----
