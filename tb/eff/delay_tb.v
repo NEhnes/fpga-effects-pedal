@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "delay.v"
+`include "../../src/eff/delay.v"
 
 module delay_tb;
 
