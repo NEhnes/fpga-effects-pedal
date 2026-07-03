@@ -5,12 +5,12 @@
  * All gain parameters in Q1.14 fixed-point (unity = 16'h4000).
  *
  * Signal flow per sample:
- *   1. Apply input_gain to incoming sample
- *   2. Read delayed sample from ring buffer at read_ptr
- *   3. Compute feedback: delayed * feedback_q114 (with saturation)
- *   4. Write to buffer: gained_input + feedback (with saturation)
- *   5. Mix output: (input * dry_gain) + (delayed * wet_gain) (with saturation)
- *   6. Advance write_ptr
+ * 1. Apply input_gain to incoming sample
+ * 2. Read delayed sample from ring buffer at read_ptr
+ * 3. Compute feedback: delayed * feedback_q114 (with saturation)
+ * 4. Write to buffer: gained_input + feedback (with saturation)
+ * 5. Mix output: (input * dry_gain) + (delayed * wet_gain) (with saturation)
+ * 6. Advance write_ptr
  *
  * AXI-Stream: valid/ready handshake propagated combinatorially (passthrough).
  * DEPTH must be a power of 2 for wraparound via bitmask.
@@ -30,14 +30,14 @@ module delay_effect #(
     input  wire [15:0] input_gain_q114,    // Q1.14
 
     // AXI-Stream
-    input  wire        tclk,
-    input  wire        rst_n,
+    input  wire             tclk,
+    input  wire             rst_n,
     input  wire [WIDTH-1:0] i_tdata,
     input  wire             i_tvalid,
     output wire             i_tready,
     input  wire             o_tready,
     output wire             o_tvalid,
-    output reg  [WIDTH-1:0] o_tdata
+    output wire [WIDTH-1:0] o_tdata        // [FIXED] Changed to wire for combinational alignment
 );
 
 // AXI-Stream passthrough
@@ -48,8 +48,8 @@ assign o_tvalid = i_tvalid;
 localparam integer PTR_WIDTH = $clog2(DEPTH);
 localparam [PTR_WIDTH-1:0] PTR_MASK = DEPTH[PTR_WIDTH-1:0] - 1'b1;
 
-reg [WIDTH-1:0]      ring_buf [0:DEPTH-1];
-reg [PTR_WIDTH-1:0]  write_ptr;
+reg [WIDTH-1:0]     ring_buf [0:DEPTH-1];
+reg [PTR_WIDTH-1:0] write_ptr;
 
 wire [PTR_WIDTH-1:0] read_ptr;
 wire [WIDTH-1:0]     delayed_sample;
@@ -102,21 +102,19 @@ sub_add #(.WIDTH(WIDTH)) u_mix_add (
     .o_sum(mix_output)
 );
 
+// [FIXED] Assign data output combinationally so it travels with the o_tvalid signal
+assign o_tdata = mix_output;
+
 // ======= MAIN SEQUENTIAL LOGIC =======
-integer i;
 
 always @(posedge tclk or negedge rst_n) begin
     if (!rst_n) begin
         write_ptr <= {PTR_WIDTH{1'b0}};
-        o_tdata   <= {WIDTH{1'b0}};
-        // Initialize ring buffer to zero on reset
-        for (i = 0; i < DEPTH; i = i + 1) begin
-            ring_buf[i] <= {WIDTH{1'b0}};
-        end
+        // [FIXED] Removed the O(N) ring_buf initialization loop. 
+        // This ensures the synthesizer infers BRAM instead of discrete flip-flops.
     end else if (i_tvalid && o_tready) begin
         ring_buf[write_ptr] <= write_value;
         write_ptr <= (write_ptr + 1'b1) & PTR_MASK;
-        o_tdata <= mix_output;
     end
 end
 
@@ -171,6 +169,7 @@ module sub_add #(
 
     wire overflow = (sum_ext[WIDTH] != sum_ext[WIDTH-1]);
 
-    assign o_sum = overflow ? (sum_ext[WIDTH] ? MAX_VAL : MIN_VAL) :
+    // [FIXED] Swapped MIN_VAL and MAX_VAL for correct positive/negative clipping
+    assign o_sum = overflow ? (sum_ext[WIDTH] ? MIN_VAL : MAX_VAL) :
                               sum_ext[WIDTH-1:0];
 endmodule
