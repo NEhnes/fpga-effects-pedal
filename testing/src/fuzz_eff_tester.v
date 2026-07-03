@@ -40,7 +40,7 @@ module fuzz_eff_tester();
   reg [15:0] pos_clip_thresh;    // Q0.16 (+/- 1.0)
   reg [15:0] neg_clip_thresh;    // Q0.16 (+/- 1.0)
   reg [7:0]  tone_coeff;         // 0=bypass, 255=max filter
-  reg [15:0]  makeup_gain;
+  reg [15:0] makeup_gain;
 
   // ======= FILE I/O =======
   integer fd_in;
@@ -106,11 +106,11 @@ module fuzz_eff_tester();
 
     // ---- Configure effect with BALANCED/MODERATE parameters ----
     // CLASSIC DIODE OVERDRIVE: Moderate gain boost + Mid-level clipping window
-    pre_gain        = 16'h7FFF;  // Signed Q2.13 ~4x gain at max
+    pre_gain        = 16'h3FFF;  // Signed Q2.13 ~4x gain at max
     pos_clip_thresh = 16'h147B;  // Moderate ceiling ~0.125 (Q0.16) [0.08]
     neg_clip_thresh = 16'h147B;  // Moderate floor ~0.125 (Q0.16) [0.08]
     tone_coeff      = 8'hFF;     // Mild low-pass filtering (smooths harsh highs without erasing the wave shape)
-    makeup_gain     = 16'h1000;  // Signed Q2.13
+    makeup_gain     = 16'h2FFF;  // Signed Q2.13
 
     // ---- Open files ----
     fd_in = $fopen("../data/input.hex", "r");

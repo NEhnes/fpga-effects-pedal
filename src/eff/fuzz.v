@@ -123,7 +123,7 @@ module fuzz #(
     //==========================================================
     sub_gain #(.WIDTH(WIDTH)) makeup_gain_stage (
         .i_sample  (tone_filtered),
-        .gain_q114 (pre_gain),
+        .gain_q114 (makeup_gain),
         .o_sample  (makeup_applied)
     );
 
