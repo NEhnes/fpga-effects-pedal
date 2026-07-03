@@ -113,7 +113,7 @@ module hardclip_eff_tester();
       $finish;
     end
 
-    fd_out = $fopen("../data/hard-clip-output.hex", "w");
+    fd_out = $fopen("../data/hex/hard-clip-output.hex", "w");
     if (fd_out == 0) begin
       $display("[ERROR] Could not open hard-clip-output.hex for writing");
       $finish;

@@ -9,7 +9,11 @@ vvp fuzz_eff_tester.out
 
 # CONVERT TO WAV
 python3 ~/fpga-effects-pedal/testing/scripts/hex24_to_wav.py \
-  ../data/fuzz-output.hex ../data/fuzz.wav --rate 48000
+  ../data/hex/fuzz-output.hex ../data/wav/fuzz.wav --rate 48000
 
 # DISPLAY WAVEFORM
-python3 ../wave-tui/term_wave.py ../data/fuzz-output.hex
+python3 ../wave-tui/term_wave.py ../data/hex/fuzz-output.hex ../data/input.hex
+
+# DELETE TEMP FILES
+cd ~/fpga-effects-pedal/testing/src
+rm fuzz_eff_tester.out

@@ -120,7 +120,7 @@ module fuzz_eff_tester();
       $finish;
     end
 
-    fd_out = $fopen("../data/fuzz-output.hex", "w");
+    fd_out = $fopen("../data/hex/fuzz-output.hex", "w");
     if (fd_out == 0) begin
       $display("[ERROR] Could not open fuzz-output.hex for writing");
       $finish;

@@ -6,67 +6,77 @@ import plotext as plt
 def parse_24bit_signed_hex(hex_string):
     """Converts a 24-bit hex string to a signed integer (two's complement)."""
     hex_string = hex_string.strip()
-    
-    # Ignore empty lines
+
     if not hex_string:
         return None
-        
-    # Remove '0x' prefix if present
+
     if hex_string.lower().startswith('0x'):
         hex_string = hex_string[2:]
-        
+
     try:
         val = int(hex_string, 16)
-        # If the 24th bit is set (0x800000), it's a negative number
         if val >= 0x800000:
             val -= 0x1000000
         return val
     except ValueError:
-        print(f"Warning: Could not parse '{hex_string}' as hex. Skipping.")
         return None
 
-def main():
-    # Check for correct arguments
-    if len(sys.argv) != 2:
-        print("Usage: ./term_wave.py <input.hex>")
-        sys.exit(1)
 
-    filepath = sys.argv[1]
-    
+def load_file(filepath, max_points=500):
+    """Load up to max_points valid samples from a hex file."""
     if not os.path.isfile(filepath):
         print(f"Error: File '{filepath}' not found.")
         sys.exit(1)
 
-    data_points = []
+    data = []
 
-    # Read and parse the file
-    with open(filepath, 'r') as file:
-        for line in file:
+    with open(filepath, 'r') as f:
+        for line in f:
             val = parse_24bit_signed_hex(line)
             if val is not None:
-                data_points.append(val)
-                
-            # Stop after 500 valid data points
-            if len(data_points) == 500:
+                data.append(val)
+            if len(data) == max_points:
                 break
 
-    if not data_points:
-        print("Error: No valid hex data found in the file.")
+    return data
+
+
+def main():
+    # Expect exactly two files
+    if len(sys.argv) != 3:
+        print("Usage: ./term_wave.py <input1.hex> <input2.hex>")
         sys.exit(1)
 
-    # Configure the Plotext terminal UI
+    file1 = sys.argv[1]
+    file2 = sys.argv[2]
+
+    data1 = load_file(file1)
+    data2 = load_file(file2)
+
+    if not data1 and not data2:
+        print("Error: No valid data found in either file.")
+        sys.exit(1)
+
+    # Align lengths for plotting (truncate to shortest)
+    n = min(len(data1), len(data2))
+    data1 = data1[:n]
+    data2 = data2[:n]
+
     plt.clear_figure()
-    plt.plot(data_points, marker="braille") 
-    plt.title(f"Low-Level Waveform: {os.path.basename(filepath)} (First {len(data_points)} samples)")
+
+    # Plot both waveforms
+    plt.plot(data1, label=os.path.basename(file1))
+    plt.plot(data2, label=os.path.basename(file2))
+
+    plt.title("Dual Waveform Comparison (24-bit signed hex)")
     plt.xlabel("Sample Index")
-    plt.ylabel("Amplitude (24-bit signed)")
-    
-    # Apply a clean theme suited for terminal windows
-    plt.theme("clear")
-    plt.plotsize(100, 30) # Adjusts width and height of the graph in characters
-    
-    # Render to terminal
+    plt.ylabel("Amplitude")
+
+    plt.theme("dark")
+    plt.plotsize(100, 30)
+
     plt.show()
+
 
 if __name__ == "__main__":
     main()
