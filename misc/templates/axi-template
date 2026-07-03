@@ -1,0 +1,87 @@
+/*==============================================================
+ * [EFFECT NAME] MODULE
+ *
+ * [Brief description of what the effect does]
+ *
+ * Features:
+ * - [Feature 1]
+ * - [Feature 2]
+ *
+ * Architecture:
+ * [Input] -> [Stage 1] -> [Stage 2] -> [Output]
+ *
+ *==============================================================
+ * PARAMETER CONFIGURATION
+ *==============================================================
+ *
+ * [param_name] ([bit-width] [format/type])
+ * Absolute range:    [min] to [max]
+ * Usable range:      [min] to [max]
+ * Unity/Default:     [val]
+ * Note: [Any specific behavioral notes]
+ *
+ *==============================================================
+ * TODO
+ * - [List any pending work or refinements]
+ *=============================================================*/
+
+module [effect_name] #(
+    parameter WIDTH = 24
+)(
+    // === EFFECT-SPECIFIC CONTROL PARAMETERS ===
+    input  wire [15:0] [parameter_a],
+    input  wire [15:0] [parameter_b],
+
+    // === SYSTEM INTERFACE ===
+    input  wire        tclk,
+    input  wire        rst_n,
+
+    // === AXI-STREAM INPUT ===
+    input  wire [WIDTH-1:0] i_tdata,
+    input  wire             i_tvalid,
+    output wire             i_tready,
+
+    // === AXI-STREAM OUTPUT ===
+    input  wire             o_tready,
+    output wire             o_tvalid,
+    output reg  [WIDTH-1:0] o_tdata
+);
+
+    //==========================================================
+    // AXI-Stream handshake: direct combinational coupling
+    //==========================================================
+    assign i_tready = o_tready;
+    assign o_tvalid = i_tvalid;
+
+    //==========================================================
+    // Internal signal declarations
+    //==========================================================
+    wire signed [WIDTH-1:0] stage1_out;
+    wire signed [WIDTH-1:0] stage2_out;
+    // reg  signed [WIDTH-1:0] reg_z1; // Uncomment if state is needed
+
+    //==========================================================
+    // Stage 1: [Description]
+    //==========================================================
+    // sub_module_name #(.WIDTH(WIDTH)) stage1 (
+    //     .i_sample   (i_tdata),
+    //     ...
+    //     .o_sample   (stage1_out)
+    // );
+
+    //==========================================================
+    // Output register — gated by valid handshake
+    //==========================================================
+    always @(posedge tclk or negedge rst_n) begin
+        if (!rst_n) begin
+            o_tdata <= {WIDTH{1'b0}};
+        end else if (i_tvalid && o_tready) begin
+            o_tdata <= stage2_out;
+        end
+    end
+
+endmodule
+
+/*==============================================================
+ * SUB-MODULES
+ *==============================================================*/
