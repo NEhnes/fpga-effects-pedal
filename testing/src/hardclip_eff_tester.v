@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "../hard_clip/hard_clip.v"
+`include "../../src/eff/hard_clip.v"
 
 /*
  * EFFECT TESTER
@@ -102,20 +102,20 @@ module hardclip_eff_tester();
     // normalized_clip = 16'h6000;   // Moderate clip threshold (Q0.16)
 
     // super AGGRESSIVE clip - proof of concept
-    input_gain     = 16'h8000;    // 2.0x boost
-    normalized_clip = 16'h2000;   // Heavy clipping at 0.125 threshold
+    input_gain     = 16'h7FFF;    // 4.0x boost
+    normalized_clip = 16'h4000;   // Heavy clipping at 0.25 threshold
 
     // ---- Open files ----
-    fd_in = $fopen("input.hex", "r");
+    fd_in = $fopen("../data/input.hex", "r");
     if (fd_in == 0) begin
       $display("[ERROR] Could not open input.hex");
       $display("        Place your 24-bit hex samples in input.hex (one per line)");
       $finish;
     end
 
-    fd_out = $fopen("output.hex", "w");
+    fd_out = $fopen("../data/hard-clip-output.hex", "w");
     if (fd_out == 0) begin
-      $display("[ERROR] Could not open output.hex for writing");
+      $display("[ERROR] Could not open hard-clip-output.hex for writing");
       $finish;
     end
 
@@ -128,7 +128,7 @@ module hardclip_eff_tester();
     $display("  norm_clip:    0x%04h (Q0.16)", normalized_clip);
     $display("  Pipeline:     %0d cycles", PIPELINE_DEPTH);
     $display("  Input:        input.hex");
-    $display("  Output:       output.hex");
+    $display("  Output:       hard-clip-output.hex");
     $display("========================================");
 
     // ---- Phase 0: Read all samples into memory ----
@@ -195,7 +195,7 @@ module hardclip_eff_tester();
     // ---- Done ----
     $fclose(fd_out);
 
-    $display("  Wrote %0d samples to output.hex", sample_count);
+    $display("  Wrote %0d samples to hard-clip-output.hex", sample_count);
     $display("");
     $display("========================================");
     $display("  PROCESSING COMPLETE");

@@ -1,0 +1,46 @@
+#!/bin/bash
+# Analyze multiple files and generate reports
+for file in *.wav; do
+    echo "Analyzing: $file"
+    soundscope "$file" --export-report "${file%.wav}_report.txt"
+done
+
+soundscope <file-name>.wav
+
+┌─────────────────────────────────────────────────────────────┐
+│                    🎵 SOUNDSCOPE CHEATSHEET 🎵                                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                                                    │
+│  INSTALL: cargo install --git https://github.com/bananaofhappiness/soundscope      │
+│                                                                                    │
+│  NAVIGATION:                                                                       │
+│  ─────────────                                                                │
+│  E → Explorer          Space → Play/Pause                                          │			
+│  L → LUFS Meter       F → Frequency                                                │
+│  M → Mid Frequencies  S → Side Frequencies                                         │
+│  ← → -5 seconds       → → +5 seconds                                               │
+│  C → Change Input     D → Select Device                                            │
+│  T → Change Theme     Q → Quit                                                     │
+│                                                                                    │
+│  SECURITY CHECKLIST:                                                               │
+│  ───────────────────                                                        │
+│  ✓ Validate file sources                                                           │
+│  ✓ Scan for embedded malware                                                       │
+│  ✓ Run in isolated environment                                                     │
+│  ✓ Monitor network connections                                                     │
+│  ✓ Check microphone permissions                                                    │
+│                                                                                    │
+│  USE CASES:                                                                        │
+│  ───────────                                                                   │
+│  🎙️ Podcast QC    🔍 Forensics    🎵 Music Production                            │
+│  📺 Live Streaming 🏢 Security    ♿ Accessibility                               │
+│                                                                                    │
+│  KEY FEATURES:                                                                     │
+│  ─────────────                                                                │
+│  📊 Real-time FFT Spectrum                                                        │
+│  📉 Waveform Visualization                                                        │
+│  🔊 LUFS & True Peak Metering                                                     │
+│  🎨 Customizable Themes                                                           │
+│  🎤 File & Microphone Input                                                       │
+│                                                                                    │
+└─────────────────────────────────────────────────────────────┘

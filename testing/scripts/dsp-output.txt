@@ -1,0 +1,23 @@
+# RUN THE HARDCLIP EFFECT
+cd /home/nehnes/fpga-effects-pedal/sim/effect-tester
+iverilog -o effect_tester_tb.out effect_tester_tb.v
+vvp effect_tester_tb.out
+
+# CONVERT TO WAV
+python3 hex24_to_wav.py output.hex effect_output.wav --rate 48000 --channels 1
+
+./term_wave.py output.hex
+
+
+
+
+
+# RUN THE FUZZ EFFECT
+cd /home/nehnes/fpga-effects-pedal/sim/effect-tester
+iverilog -o fuzz_eff_tester.out fuzz_eff_tester.v
+vvp fuzz_eff_tester.out
+
+# CONVERT TO WAV
+python3 hex24_to_wav.py output.hex effect_output.wav --rate 48000 --channels 1
+
+./term_wave.py output.hex

@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "../fuzz/fuzz.v"
+`include "../../src/eff/fuzz.v"
 
 /*
  * FUZZ EFFECT TESTER
@@ -113,16 +113,16 @@ module fuzz_eff_tester();
     makeup_gain     = 16'h1000;  // Signed Q2.13
 
     // ---- Open files ----
-    fd_in = $fopen("input.hex", "r");
+    fd_in = $fopen("../data/input.hex", "r");
     if (fd_in == 0) begin
       $display("[ERROR] Could not open input.hex");
       $display("        Place your 24-bit hex samples in input.hex (one per line)");
       $finish;
     end
 
-    fd_out = $fopen("output.hex", "w");
+    fd_out = $fopen("../data/fuzz-output.hex", "w");
     if (fd_out == 0) begin
-      $display("[ERROR] Could not open output.hex for writing");
+      $display("[ERROR] Could not open fuzz-output.hex for writing");
       $finish;
     end
 
@@ -137,7 +137,7 @@ module fuzz_eff_tester();
     $display("  tone_coeff:      0x%02h (0=bright, 255=dark)", tone_coeff);
     $display("  Pipeline:        %0d cycles", PIPELINE_DEPTH);
     $display("  Input:           input.hex");
-    $display("  Output:          output.hex");
+    $display("  Output:          fuzz-output.hex");
     $display("========================================");
 
     // ---- Phase 0: Read all samples into memory ----
@@ -189,7 +189,7 @@ module fuzz_eff_tester();
     // ---- Done ----
     $fclose(fd_out);
 
-    $display("  Wrote %0d samples to output.hex", sample_count);
+    $display("  Wrote %0d samples to fuzz-output.hex", sample_count);
     $display("");
     $display("========================================");
     $display("  PROCESSING COMPLETE");

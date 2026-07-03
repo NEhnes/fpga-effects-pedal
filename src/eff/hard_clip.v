@@ -49,7 +49,7 @@ wire [WIDTH-1:0] s1s2;
 
 sub_gain s1 (
     .i_sample(i_tdata),
-    .gain_q114(input_gain),
+    .gain_q213(input_gain),
     .o_sample(s1s2)
 );
 
@@ -83,19 +83,19 @@ endmodule
 /*=========== sub-module gain ============
  * Uses fixed point math
  * Signed 24-bit audio sample
- * Signed Q1.14 gain value
+ * Signed Q2.13 gain value
  * Compute truncated value
  *======================================*/
 module sub_gain #(
     parameter WIDTH = 24
 )(
     input  signed [WIDTH-1:0] i_sample,
-    input  signed [15:0] gain_q114,  // SIGNED Q1.14, unity gain = 0x4000
+    input  signed [15:0] gain_q213,  // SIGNED Q2.13,
     output signed [WIDTH-1:0] o_sample
 );
-    localparam FRAC_BITS = 14;
+    localparam FRAC_BITS = 13;
     wire signed [(WIDTH + 16) - 1:0] temp;
-    assign temp = i_sample * gain_q114;
+    assign temp = i_sample * gain_q213;
 
     wire signed [(WIDTH + 16) - 1:0] rounded = temp + (1 << (FRAC_BITS - 1));
     wire signed [(WIDTH + 16) - 1:0] shifted = rounded >>> FRAC_BITS;
