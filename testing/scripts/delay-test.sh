@@ -17,4 +17,4 @@ python3 ../wave-tui/term_wave.py ../data/hex/delay-output.hex ../data/input.hex
 # DELETE TEMP FILES
 cd ~/fpga-effects-pedal/testing/src
 rm delay_eff_tester.out
-rm delay_eff_tester.vcd
+# rm delay_eff_tester.vcd

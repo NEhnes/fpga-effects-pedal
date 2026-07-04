@@ -26,7 +26,7 @@ module delay_eff_tester();
 
   // ======= CONFIGURABLE PARAMETERS =======
   parameter PIPELINE_DEPTH = 4;  // Delay has 4-stage pipeline
-  parameter DEPTH = 1024;        // Must be power of 2
+  parameter DEPTH = 131072;        // Must be power of 2
 
   // ======= CLOCK AND RESET =======
   reg clk;
@@ -109,9 +109,9 @@ module delay_eff_tester();
 
     // ---- Configure effect with MODERATE DELAY PARAMETERS ----
     // SPACIOUS DELAY: Medium delay time + controlled feedback + balanced mix
-    delay_samples  = 17'd256;     // 256-sample delay (~2.56ms @ 100 MHz)
+    delay_samples  = 17'd10000;     // --time--
     feedback       = 8'd96;       // 37.5% feedback (0x60 ~= 96/255)
-    mix            = 8'd96;       // 37.5% wet signal
+    mix            = 8'd49;       // ~20% wet signal
 
     // ---- Open files ----
     fd_in = $fopen("../data/input.hex", "r");

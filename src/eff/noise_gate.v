@@ -1,5 +1,5 @@
 /*==============================================================
- * NOISE GATE EFFECT MODULE
+ * NOISE GATE EFFECT MODULE (SIMPLIFIED)
  *
  * A noise gate that mutes the signal when its level falls below
  * a threshold, silencing noise during quiet passages.
@@ -41,10 +41,7 @@
  *   Absolute range:    0x8000 (-4.0x) to 0x7FFF (+3.9999x)
  *   Unity gain:        16'd4096 (0x1000, 1.0x)
  *   Note: Post-gate makeup gain to compensate for signal reduction.
- *==============================================================
- * TODO
- * - None
- *=============================================================*/
+ *==============================================================*/
 
 module noise_gate #(
     parameter WIDTH = 24
@@ -53,7 +50,7 @@ module noise_gate #(
     input  wire [15:0] threshold,    // Q0.16 unsigned
     input  wire [15:0] attack,       // attack length in samples
     input  wire [15:0] release_len,  // release length in samples
-    input  wire [15:0] makeup_gain,  // Q2.13 signed
+    input  signed [15:0] makeup_gain,  // Q2.13 signed
 
     // === SYSTEM INTERFACE ===
     input  wire        tclk,
@@ -90,7 +87,7 @@ module noise_gate #(
     wire                    gate_open;
 
     // -- Smooth gain ramping --
-    reg  [15:0]             ramp_counter;  // counts 0..attack or 0..release_len
+    reg  [15:0]             ramp_counter;  // counts during attack/release
     reg                     gate_is_open;  // registered gate state (1 = open, 0 = closed)
     wire signed [15:0]      gain_q114;     // Q1.14 gain coefficient
 
@@ -121,23 +118,42 @@ module noise_gate #(
     //==========================================================
     // Stage 3: Smooth gain with attack/release ramping
     //
-    //   gate opens: ramp_counter counts 0 -> attack
-    //     gain = ramp_counter / attack  (linear ramp 0.0 -> 1.0)
+    // Ramp counter increments when transitioning between states.
+    // On attack (gate_is_open = 0 but gate_open = 1):
+    //   gain = ramp_counter / attack
+    // On release (gate_is_open = 1 but gate_open = 0):
+    //   gain = (release_len - ramp_counter) / release_len
     //
-    //   gate closes: ramp_counter counts 0 -> release_len
-    //     gain = 1.0 - (ramp_counter / release_len) (linear ramp 1.0 -> 0.0)
-    //
-    //   attack = 0  -> instant open (gain jumps to 1.0)
-    //   release_len = 0 -> instant close (gain jumps to 0.0)
+    // Special cases (attack or release = 0) handled by clamping gain.
     //
     // gain_q114 is Q1.14 format: 0x0000 = 0.0, 0x4000 = 1.0
     //==========================================================
 
-    // Combinational gain calculation based on registered gate state
-    // and current ramp counter position.
-    assign gain_q114 = gate_is_open
-        ? ((attack == 16'd0) ? 16'h4000 : $signed({1'b0, ramp_counter}) * 16'h4000 / $signed({1'b0, attack}))
-        : ((release_len == 16'd0) ? 16'h0000 : (16'h4000 - ($signed({1'b0, ramp_counter}) * 16'h4000 / $signed({1'b0, release_len}))));
+    // Determine which direction we're ramping
+    wire ramp_is_attack = gate_is_open;
+    wire ramp_done_attack = (ramp_counter >= attack) || (attack == 16'd0);
+    wire ramp_done_release = (ramp_counter >= release_len) || (release_len == 16'd0);
+
+    // Compute gain based on current ramp position
+    wire signed [31:0] ramp_num;
+    wire signed [31:0] ramp_denom;
+    wire signed [31:0] ramp_frac;
+
+    // Attack: gain = counter / attack (0.0 -> 1.0)
+    // Release: gain = (len - counter) / len (1.0 -> 0.0)
+    // Use registered gate_is_open so gain formula is consistent
+    assign ramp_num = ramp_is_attack
+        ? $signed({1'b0, ramp_counter})
+        : $signed({1'b0, release_len}) - $signed({1'b0, ramp_counter});
+
+    assign ramp_denom = ramp_is_attack ? $signed({1'b0, attack}) : $signed({1'b0, release_len});
+
+    // Avoid division by zero
+    assign ramp_frac = (ramp_denom == 32'd0)
+        ? (ramp_is_attack ? 32'h4000 : 32'h0000)
+        : (ramp_num * 32'h4000) / ramp_denom;
+
+    assign gain_q114 = ramp_frac[15:0];
 
     // Apply smoothed gain to the input signal
     sub_gain #(.WIDTH(WIDTH)) gate_gain_stage (
@@ -179,24 +195,17 @@ module noise_gate #(
                 envelope <= envelope - leakage; // slow release
             end
 
-            // --- Ramp counter and gate_is_open ---
-            if (gate_open) begin
-                gate_is_open <= 1'b1;
-                if (attack == 16'd0) begin
-                    ramp_counter <= 16'd0;    // instant open
-                end else if (ramp_counter < attack) begin
-                    ramp_counter <= ramp_counter + 16'd1;
-                end
-                // else: counter saturated at attack — hold
-            end else begin
-                gate_is_open <= 1'b0;
-                if (release_len == 16'd0) begin
-                    ramp_counter <= 16'd0;    // instant close
-                end else if (ramp_counter < release_len) begin
-                    ramp_counter <= ramp_counter + 16'd1;
-                end
-                // else: counter saturated at release_len — hold
+            // --- Gate state and ramp counter ---
+            // Compare combinational gate_open with registered gate_is_open
+            if (gate_open != gate_is_open) begin
+                // Direction change: reset counter to 0
+                ramp_counter <= 16'd0;
+                gate_is_open <= gate_open;
+            end else if ((gate_is_open && !ramp_done_attack) || (!gate_is_open && !ramp_done_release)) begin
+                // Continue ramping in current direction
+                ramp_counter <= ramp_counter + 16'd1;
             end
+            // else: ramp complete or direction unchanged, hold state
         end
     end
 
