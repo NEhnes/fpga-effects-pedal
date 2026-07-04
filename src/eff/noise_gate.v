@@ -129,8 +129,9 @@ module noise_gate #(
     // gain_q114 is Q1.14 format: 0x0000 = 0.0, 0x4000 = 1.0
     //==========================================================
 
-    // Determine which direction we're ramping
-    wire ramp_is_attack = gate_is_open;
+    // Determine ramp direction: use gate_open to see where we're going
+    // If gate_open, we're opening (attack ramp); if not, we're closing (release ramp)
+    wire ramp_is_attack = gate_open;
     wire ramp_done_attack = (ramp_counter >= attack) || (attack == 16'd0);
     wire ramp_done_release = (ramp_counter >= release_len) || (release_len == 16'd0);
 
@@ -141,7 +142,7 @@ module noise_gate #(
 
     // Attack: gain = counter / attack (0.0 -> 1.0)
     // Release: gain = (len - counter) / len (1.0 -> 0.0)
-    // Use registered gate_is_open so gain formula is consistent
+    // Use gate_open (combinational) to respond immediately to threshold crossing
     assign ramp_num = ramp_is_attack
         ? $signed({1'b0, ramp_counter})
         : $signed({1'b0, release_len}) - $signed({1'b0, ramp_counter});
@@ -198,14 +199,18 @@ module noise_gate #(
             // --- Gate state and ramp counter ---
             // Compare combinational gate_open with registered gate_is_open
             if (gate_open != gate_is_open) begin
-                // Direction change: reset counter to 0
-                ramp_counter <= 16'd0;
+                // Direction change: just update gate_is_open
+                // Counter will start fresh but continues on next cycle
                 gate_is_open <= gate_open;
-            end else if ((gate_is_open && !ramp_done_attack) || (!gate_is_open && !ramp_done_release)) begin
-                // Continue ramping in current direction
-                ramp_counter <= ramp_counter + 16'd1;
             end
-            // else: ramp complete or direction unchanged, hold state
+            
+            // Always increment counter when ramping (don't stop on direction change)
+            if ((gate_open && !ramp_done_attack) || (!gate_open && !ramp_done_release)) begin
+                ramp_counter <= ramp_counter + 16'd1;
+            end else begin
+                // Ramp complete or not ramping: reset counter for next ramp
+                ramp_counter <= 16'd0;
+            end
         end
     end
 

@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "noise_gate.v"
+`include "../../src/eff/noise_gate.v"
 
 module noise_gate_tb;
 
