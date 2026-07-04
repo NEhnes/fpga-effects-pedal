@@ -1,5 +1,7 @@
 /*==============================================================
  * NOISE GATE EFFECT MODULE (SIMPLIFIED)
+ *  
+ * MAY NEED TO BE PIPELINED
  *
  * A noise gate that mutes the signal when its level falls below
  * a threshold, silencing noise during quiet passages.
@@ -29,7 +31,7 @@
  *   Absolute range:    0 (instant) to 65535
  *   Usable range:      0-10000 (~0-200ms @ 48kHz)
  *   Default:           500 (~10ms @ 48kHz)
- *   Note: How fast the gate opens (in samples). 0 = instant.
+ *   Note: How fast the gate opens (in samples). 0 = instant. fade-in type effect
  *
  * release_len (16-bit unsigned)
  *   Absolute range:    0 (instant) to 65535
