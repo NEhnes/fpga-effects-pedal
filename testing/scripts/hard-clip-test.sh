@@ -17,3 +17,4 @@ python3 ../wave-tui/term_wave.py ../data/hex/hard-clip-output.hex ../data/input.
 # DELETE TEMP FILES
 cd ~/fpga-effects-pedal/testing/src
 rm hardclip_eff_tester.out
+rm hardclip_eff_tester.vcd

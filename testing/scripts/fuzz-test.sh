@@ -17,3 +17,4 @@ python3 ../wave-tui/term_wave.py ../data/hex/fuzz-output.hex ../data/input.hex
 # DELETE TEMP FILES
 cd ~/fpga-effects-pedal/testing/src
 rm fuzz_eff_tester.out
+rm fuzz_eff_tester.vcd
