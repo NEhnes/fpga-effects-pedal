@@ -1,145 +1,244 @@
-/*
- * delay_effect.v
+/*==============================================================
+ * DELAY EFFECT MODULE
  *
- * Digital delay effect with ring buffer, feedback path, and dry/wet mix.
- * All gain parameters in Q1.14 fixed-point (unity = 16'h4000).
+ * A parametric digital delay effect for FPGA guitar pedal.
+ * Uses an inferred block RAM circular buffer for the delay line.
  *
- * Signal flow per sample:
- * 1. Apply input_gain to incoming sample
- * 2. Read delayed sample from ring buffer at read_ptr
- * 3. Compute feedback: delayed * feedback_q114 (with saturation)
- * 4. Write to buffer: gained_input + feedback (with saturation)
- * 5. Mix output: (input * dry_gain) + (delayed * wet_gain) (with saturation)
- * 6. Advance write_ptr
+ * Features:
+ * - Parametric delay time (0 to MAX_DELAY_SAMPLES-1 samples)
+ * - Wet/dry mix control (Q1.14 coefficient)
+ * - Regenerative feedback with saturation protection
+ * - Makeup gain for output level compensation
+ * - AXI-Stream handshake with direct backpressure coupling
  *
- * AXI-Stream: valid/ready handshake propagated combinatorially (passthrough).
- * DEPTH must be a power of 2 for wraparound via bitmask.
+ * Architecture:
+ * [Input] → (+) → [Delay Line WRITE] → [Delay Line READ] → [Mix] → [Makeup Gain] → [Output]
+ *            ↑                                              |
+ *            └──── [Feedback Gain] ←─────────────────────────┘
  *
- * Reset: active-low, asynchronous (matches existing codebase convention)
- */
+ *==============================================================
+ * PARAMETER CONFIGURATION
+ *==============================================================
+ *
+ * delay_time (16-bit unsigned)
+ *   Absolute range:    0 to 65535
+ *   Usable range:      0 to MAX_DELAY_SAMPLES-1
+ *   Unity/Default:     0
+ *   Note: Delay in samples at ~48kHz. Each sample ≈ 20.8 µs.
+ *         Examples: 2400 samples ≈ 50 ms, 24000 samples ≈ 500 ms.
+ *         Values ≥ MAX_DELAY_SAMPLES wrap via truncation.
+ *         time=0 gives instantaneous readback (oscillation risk).
+ *
+ * mix (16-bit Q1.14 signed)
+ *   Absolute range:    0x8000 (-4.0×) to 0x7FFF (+3.9999×)
+ *   Usable range:      0x0000 (all dry) to 0x4000 (full wet)
+ *   Unity/Default:     0x2000 (equal mix)
+ *   Note: Applied to wet (delayed) signal only. Dry signal passes
+ *         at unity gain. Use makeup_gain to compensate for mix level.
+ *
+ * feedback (16-bit Q1.14 signed)
+ *   Absolute range:    0x8000 (-4.0×) to 0x7FFF (+3.9999×)
+ *   Usable range:      0x0000 (no feedback) to 0x3FFF (max stable)
+ *   Unity/Default:     0x0000
+ *   Note: Controls how much delayed signal feeds back into the
+ *         delay line. Values above 0x4000 (1.0×) cause runaway
+ *         saturation. Negative values invert polarity of repeats.
+ *
+ * makeup_gain (16-bit Q1.14 signed)
+ *   Same configuration as fuzz module.
+ *   Unity/Default:     0x4000 (1.0×)
+ *
+ *==============================================================
+ * TODO
+ * - None
+ *=============================================================*/
 
-module delay_effect #(
-    parameter WIDTH = 24,
-    parameter DEPTH = 1024  // Must be power of 2
+module delay #(
+    parameter WIDTH       = 24,
+    parameter MAX_DELAY_SAMPLES = 32768  // ~682 ms at 48 kHz
 )(
-    // Effect parameters
-    input  wire [15:0] delay_samples,      // Integer: 1 to DEPTH
-    input  wire [15:0] feedback_q114,      // Q1.14
-    input  wire [15:0] wet_gain_q114,      // Q1.14
-    input  wire [15:0] dry_gain_q114,      // Q1.14
-    input  wire [15:0] input_gain_q114,    // Q1.14
+    // === EFFECT-SPECIFIC CONTROL PARAMETERS ===
+    input wire [15:0] delay_time,    // delay in samples [0, MAX_DELAY_SAMPLES)
+    input wire [15:0] mix,           // Q1.14 wet gain
+    input wire [15:0] feedback,      // Q1.14 feedback amount
+    input wire [15:0] makeup_gain,   // Q1.14 output level compensation
 
-    // AXI-Stream
-    input  wire             tclk,
-    input  wire             rst_n,
+    // === SYSTEM INTERFACE ===
+    input  wire        tclk,
+    input  wire        rst_n,
+
+    // === AXI-STREAM INPUT ===
     input  wire [WIDTH-1:0] i_tdata,
     input  wire             i_tvalid,
     output wire             i_tready,
+
+    // === AXI-STREAM OUTPUT ===
     input  wire             o_tready,
     output wire             o_tvalid,
-    output wire [WIDTH-1:0] o_tdata        // [FIXED] Changed to wire for combinational alignment
+    output reg  [WIDTH-1:0] o_tdata
 );
 
-// AXI-Stream passthrough
-assign i_tready = o_tready;
-assign o_tvalid = i_tvalid;
+    //==========================================================
+    // AXI-Stream handshake: direct combinational coupling
+    //==========================================================
+    assign i_tready = o_tready;
+    assign o_tvalid = i_tvalid;
 
-// ======= RING BUFFER =======
-localparam integer PTR_WIDTH = $clog2(DEPTH);
-localparam [PTR_WIDTH-1:0] PTR_MASK = DEPTH[PTR_WIDTH-1:0] - 1'b1;
+    //==========================================================
+    // Local parameters
+    //==========================================================
+    localparam ADDR_W = 15;  // 2^15 = 32768
 
-reg [WIDTH-1:0]     ring_buf [0:DEPTH-1];
-reg [PTR_WIDTH-1:0] write_ptr;
+    //==========================================================
+    // Delay line BRAM
+    //==========================================================
+    reg  [WIDTH-1:0] delay_line [0:MAX_DELAY_SAMPLES-1];
+    reg  [ADDR_W-1:0] wr_ptr;
+    wire [ADDR_W-1:0] rd_addr;
+    reg  signed [WIDTH-1:0] rd_data;
 
-wire [PTR_WIDTH-1:0] read_ptr;
-wire [WIDTH-1:0]     delayed_sample;
-
-// read_ptr = write_ptr - delay_samples (wraparound via bitmask)
-assign read_ptr = (write_ptr - (delay_samples[PTR_WIDTH-1:0] & PTR_MASK)) & PTR_MASK;
-assign delayed_sample = ring_buf[read_ptr];
-
-// ======= SIGNAL PROCESSING =======
-wire signed [WIDTH-1:0] gained_input;
-wire signed [WIDTH-1:0] feedback_signal;
-wire signed [WIDTH-1:0] write_value;
-wire signed [WIDTH-1:0] dry_signal;
-wire signed [WIDTH-1:0] wet_signal;
-wire signed [WIDTH-1:0] mix_output;
-
-sub_gain #(.WIDTH(WIDTH)) u_input_gain (
-    .i_sample(i_tdata),
-    .gain_q114(input_gain_q114),
-    .o_sample(gained_input)
-);
-
-sub_gain #(.WIDTH(WIDTH)) u_feedback_gain (
-    .i_sample(delayed_sample),
-    .gain_q114(feedback_q114),
-    .o_sample(feedback_signal)
-);
-
-sub_gain #(.WIDTH(WIDTH)) u_dry_gain (
-    .i_sample(i_tdata),
-    .gain_q114(dry_gain_q114),
-    .o_sample(dry_signal)
-);
-
-sub_gain #(.WIDTH(WIDTH)) u_wet_gain (
-    .i_sample(delayed_sample),
-    .gain_q114(wet_gain_q114),
-    .o_sample(wet_signal)
-);
-
-sub_add #(.WIDTH(WIDTH)) u_feedback_add (
-    .i_a(gained_input),
-    .i_b(feedback_signal),
-    .o_sum(write_value)
-);
-
-sub_add #(.WIDTH(WIDTH)) u_mix_add (
-    .i_a(dry_signal),
-    .i_b(wet_signal),
-    .o_sum(mix_output)
-);
-
-// [FIXED] Assign data output combinationally so it travels with the o_tvalid signal
-assign o_tdata = mix_output;
-
-// ======= MAIN SEQUENTIAL LOGIC =======
-
-always @(posedge tclk or negedge rst_n) begin
-    if (!rst_n) begin
-        write_ptr <= {PTR_WIDTH{1'b0}};
-        // [FIXED] Removed the O(N) ring_buf initialization loop. 
-        // This ensures the synthesizer infers BRAM instead of discrete flip-flops.
-    end else if (i_tvalid && o_tready) begin
-        ring_buf[write_ptr] <= write_value;
-        write_ptr <= (write_ptr + 1'b1) & PTR_MASK;
+    // BRAM and rd_data initialisation — simulation only.
+    // Avoids X-propagation from uninitialized memory and registered
+    // read output through the feedback multiplier (X * 0 = X in Verilog).
+    // Real BRAM powers up as zero with registered output = 0.
+    integer init_i;
+    initial begin
+        rd_data = {WIDTH{1'b0}};
+        for (init_i = 0; init_i < MAX_DELAY_SAMPLES; init_i = init_i + 1)
+            delay_line[init_i] = {WIDTH{1'b0}};
     end
-end
+
+    //==========================================================
+    // Internal signals
+    //==========================================================
+    wire signed [WIDTH-1:0] fb_scaled;    // feedback * delayed sample
+    wire signed [WIDTH-1:0] wr_data;      // data to write to delay line
+    wire signed [WIDTH-1:0] wet_scaled;   // mix * delayed sample
+    wire signed [WIDTH-1:0] mix_sum;      // dry + wet (with saturation)
+    wire signed [WIDTH-1:0] makeup_applied;
+
+    //==========================================================
+    // Read address computation (combinational)
+    //
+    // rd_addr = wr_ptr - delay_time, with wraparound at
+    // MAX_DELAY_SAMPLES. Relies on unsigned subtraction
+    // wrapping via power-of-2 modulo when delay_time is
+    // truncated to ADDR_W bits.
+    //==========================================================
+    assign rd_addr = wr_ptr - delay_time[ADDR_W-1:0];
+
+    //==========================================================
+    // Delay line BRAM read (registered, continuous)
+    //
+    // The registered read gives 1-cycle latency from address
+    // to data. This is inherent to BRAM and handled by the
+    // pipeline: rd_data in cycle N corresponds to the read
+    // address from cycle N-1.
+    //==========================================================
+    always @(posedge tclk) begin
+        rd_data <= delay_line[rd_addr];
+    end
+
+    //==========================================================
+    // Stage 1: Feedback gain
+    // rd_data * feedback (Q1.14), saturated
+    //==========================================================
+    sub_gain #(.WIDTH(WIDTH)) feedback_gain (
+        .i_sample  (rd_data),
+        .gain_q114 (feedback),
+        .o_sample  (fb_scaled)
+    );
+
+    //==========================================================
+    // Stage 2: Saturating add for delay line write data
+    // wr_data = i_tdata + fb_scaled (with saturation)
+    //==========================================================
+    sub_sat_add #(.WIDTH(WIDTH)) feedback_adder (
+        .a     (i_tdata),
+        .b     (fb_scaled),
+        .o_sum (wr_data)
+    );
+
+    //==========================================================
+    // Stage 3: Wet gain
+    // rd_data * mix (Q1.14), saturated
+    //==========================================================
+    sub_gain #(.WIDTH(WIDTH)) wet_gain (
+        .i_sample  (rd_data),
+        .gain_q114 (mix),
+        .o_sample  (wet_scaled)
+    );
+
+    //==========================================================
+    // Stage 4: Saturating add for dry/wet mix
+    // mix_sum = i_tdata + wet_scaled (with saturation)
+    //==========================================================
+    sub_sat_add #(.WIDTH(WIDTH)) mix_adder (
+        .a     (i_tdata),
+        .b     (wet_scaled),
+        .o_sum (mix_sum)
+    );
+
+    //==========================================================
+    // Stage 5: Makeup gain
+    //==========================================================
+    sub_gain #(.WIDTH(WIDTH)) makeup_stage (
+        .i_sample  (mix_sum),
+        .gain_q114 (makeup_gain),
+        .o_sample  (makeup_applied)
+    );
+
+    //==========================================================
+    // Output register & delay line write — gated by handshake
+    //==========================================================
+    always @(posedge tclk or negedge rst_n) begin
+        if (!rst_n) begin
+            wr_ptr  <= {ADDR_W{1'b0}};
+            o_tdata <= {WIDTH{1'b0}};
+        end else if (i_tvalid && o_tready) begin
+            // Write feedback-mixed sample to current write position
+            delay_line[wr_ptr] <= wr_data;
+
+            // Advance write pointer (wraps at MAX_DELAY_SAMPLES)
+            if (wr_ptr == MAX_DELAY_SAMPLES-1)
+                wr_ptr <= {ADDR_W{1'b0}};
+            else
+                wr_ptr <= wr_ptr + 1'b1;
+
+            // Output register
+            o_tdata <= makeup_applied;
+        end
+    end
 
 endmodule
 
 
-/*=========== sub-module gain ============
- * Uses fixed point math
- * Signed WIDTH-bit audio sample
- * Signed Q1.14 gain value
- *======================================*/
+/*==============================================================
+ * SUB-MODULE: sub_gain
+ *
+ * Signed Q1.14 fixed-point multiplication with saturation.
+ * Same as sim/hard_clip/hard_clip.v:sub_gain.
+ *
+ * i_sample   : signed WIDTH-bit audio sample
+ * gain_q114  : signed Q1.14 coefficient (unity = 0x4000)
+ * o_sample   : saturated WIDTH-bit result
+ *==============================================================*/
 module sub_gain #(
     parameter WIDTH = 24
 )(
     input  signed [WIDTH-1:0] i_sample,
-    input  signed [15:0] gain_q114,  // SIGNED Q1.14, unity gain = 0x4000
+    input  signed [15:0]      gain_q114,
     output signed [WIDTH-1:0] o_sample
 );
-    localparam FRAC_BITS = 14;
+    localparam FRAC_BITS = 13;
+
     wire signed [(WIDTH + 16) - 1:0] temp;
     assign temp = i_sample * gain_q114;
 
     wire signed [(WIDTH + 16) - 1:0] rounded = temp + (1 << (FRAC_BITS - 1));
     wire signed [(WIDTH + 16) - 1:0] shifted = rounded >>> FRAC_BITS;
 
+    // Saturation bounds for signed WIDTH-bit
     localparam signed [WIDTH-1:0] MAX_VAL = {1'b0, {(WIDTH-1){1'b1}}};
     localparam signed [WIDTH-1:0] MIN_VAL = {1'b1, {(WIDTH-1){1'b0}}};
 
@@ -151,25 +250,29 @@ module sub_gain #(
                                   shifted[WIDTH-1:0];
 endmodule
 
-/*=========== sub-module add ============
- * Saturating signed addition.
- * Clamps to [-(2^(WIDTH-1)), 2^(WIDTH-1)-1] on overflow/underflow.
- *======================================*/
-module sub_add #(
+
+/*==============================================================
+ * SUB-MODULE: sub_sat_add
+ *
+ * Signed saturating addition.
+ * Prevents wraparound distortion when summing two audio signals.
+ *
+ * a, b     : signed WIDTH-bit audio samples
+ * o_sum    : saturated WIDTH-bit sum
+ *==============================================================*/
+module sub_sat_add #(
     parameter WIDTH = 24
 )(
-    input  signed [WIDTH-1:0] i_a,
-    input  signed [WIDTH-1:0] i_b,
+    input  signed [WIDTH-1:0] a,
+    input  signed [WIDTH-1:0] b,
     output signed [WIDTH-1:0] o_sum
 );
-    wire signed [WIDTH:0] sum_ext = {i_a[WIDTH-1], i_a} + {i_b[WIDTH-1], i_b};
-
     localparam signed [WIDTH-1:0] MAX_VAL = {1'b0, {(WIDTH-1){1'b1}}};
     localparam signed [WIDTH-1:0] MIN_VAL = {1'b1, {(WIDTH-1){1'b0}}};
 
-    wire overflow = (sum_ext[WIDTH] != sum_ext[WIDTH-1]);
+    wire signed [WIDTH:0] temp = $signed(a) + $signed(b);
 
-    // [FIXED] Swapped MIN_VAL and MAX_VAL for correct positive/negative clipping
-    assign o_sum = overflow ? (sum_ext[WIDTH] ? MIN_VAL : MAX_VAL) :
-                              sum_ext[WIDTH-1:0];
+    assign o_sum = (temp > MAX_VAL) ? MAX_VAL :
+                   (temp < MIN_VAL) ? MIN_VAL :
+                                      temp[WIDTH-1:0];
 endmodule
