@@ -23,7 +23,7 @@ This project is an **FPGA-based guitar effects pedal** built around an **SoC** d
        │
  (Analog AC + DC Bias)  <-- Lifted to a 1.65V DC offset to prevent negative voltage rail clipping
        ▼
-[ADC Pmod]
+[Onboard ADAU1761 Codec]
        │
      (I2S)  <-- Digital Serial Stream: BCLK, LRCLK, SDOUT
        ▼
@@ -31,7 +31,7 @@ This project is an **FPGA-based guitar effects pedal** built around an **SoC** d
        │
      (I2S)  <-- Processed Digital Serial Stream: BCLK, LRCLK, SDIN
        ▼
-[DAC Pmod]
+[Onboard ADAU1761 Codec]
        │
  (Analog + DC Bias)  <-- Smooths digital steps; still riding on 1.65V DC offset
        ▼
@@ -53,24 +53,15 @@ This project is an **FPGA-based guitar effects pedal** built around an **SoC** d
 
 ### Core processing platform
 
-The current preferred FPGA platform is the **Digilent Arty Z7-20**, because it provides a Zynq-7000 SoC with the **XC7Z020** device, offering substantially more FPGA resources than the smaller Z7-10 variant.
+The current preferred FPGA platform is the **Digilent Zedboard**, because it provides a Zynq-7000 SoC with the **XC7Z020** device, offering substantially more FPGA resources than the smaller variants.
 
 Why this board is currently favored:
 
 - Dual-core ARM Cortex-A9 processing system for Linux/PetaLinux workflows.
 - FPGA fabric large enough for multiple DSP/effect blocks and routing logic.
-- Pmod connectivity for faster ADC/DAC bring-up.
+- Onboard high-quality audio codec
 - Easier path for prototyping than jumping immediately to a more complex Zynq UltraScale+ platform.
-- Reasonable (ish) price after Digilent student discount.
-
-### Audio path
-
-Current audio I/O plan:
-
-- **Input ADC:** Digilent **Pmod AD1**, a two-channel 12-bit ADC Pmod.
-- **Output DAC:** Digilent **Pmod DA3**, a 16-bit DAC Pmod.
-
-This choice is mainly about reducing bring-up complexity and leveraging readily available modules with existing documentation and known interfaces.
+- Free use through academic donation.
 
 ### Software / control split
 
@@ -177,9 +168,8 @@ It is **not** intended for high-speed internal FPGA clocks or DDR-level debug, b
 
 ### Current likely platform components
 
-- **Main board:** Digilent Arty Z7-20 (Zynq-7000 SoC, XC7Z020).
-- **ADC:** Digilent Pmod AD1.
-- **DAC:** Digilent Pmod DA3.
+- **Main board:** Digilent Zedboard (Zynq-7000 SoC, XC7Z020).
+- **Audio Codec:** ADAU1761
 - **Primary UI control:** Rotary encoder & buttons
 - **Optional local display:** small OLED or similar low-complexity display.
 - **Debug tools:** multimeter, 24 MHz logic analyzer, Vivado design suite, and audio-analysis setup.
@@ -253,4 +243,4 @@ When using this project description with another LLM, the most useful assumption
 
 ## One-paragraph compressed version
 
-A guitar effects pedal is being planned around a Digilent Arty Z7-20 Zynq-7000 SoC board using the XC7Z020, with audio entering via a Pmod ADC and leaving via a Pmod DAC. The FPGA fabric is intended to run modular real-time DSP effect blocks connected through AXI Stream-style routing/crossbar logic, while PetaLinux on the ARM side handles UI, presets, and effect-chain control. The current preference is for a practical, easy-to-debug prototype: likely a rotary-encoder-based or laptop-hosted UI, a 24 MHz USB logic analyzer for digital bring-up, and an audio analyzer or USB audio interface for testing instead of advanced, expensive tools like an oscilloscope.
+A guitar effects pedal is being planned around a Digilent Zedboard Zynq-7000 SoC board using the XC7Z020, with audio entering via an onboard ADAU1761 codec. The FPGA fabric is intended to run modular real-time DSP effect blocks connected through AXI Stream-style routing/crossbar logic, while PetaLinux on the ARM side handles UI, presets, and effect-chain control. The current preference is for a practical, easy-to-debug prototype: likely a rotary-encoder-based or laptop-hosted UI, a 24 MHz USB logic analyzer for digital bring-up, and an audio analyzer or USB audio interface for testing instead of advanced, expensive tools like an oscilloscope.

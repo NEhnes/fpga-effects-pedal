@@ -10,8 +10,8 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [x] Module definition, parameters, ports (input/output/inout)
   - Date learned: May 18
 
-- [ ] Parameterized modules (defparam, parameter declarations)
-  - Date learned: ______________
+- [x] Parameterized modules (defparam, parameter declarations)
+  - Date learned: July 1
 
 - [x] Port declarations and port mapping in instantiation
   - Date learned: May 18
@@ -23,18 +23,18 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [x] Bit-width declarations and vector indexing
   - Date learned: May 18
 
-- [ ] Signed vs. unsigned operations
-  - Date learned: ______________
+- [x] Signed vs. unsigned operations
+  - Date learned: July 1
 
 ### Control Structures
-- [ ] Always blocks: combinational (`always @(*)`)
-  - Date learned: ____________
+- [x] Always blocks: combinational (`always @(*)`)
+  - Date learned: July 1
 
 - [x] Always blocks: sequential (`always @(posedge clk)`)
   - Date learned: May 20
 
-- [ ] Always blocks: latches and sensitivity lists
-  - Date learned: ______________
+- [x] Always blocks: latches and sensitivity lists
+  - Date learned: July 1
 
 - [x] If/else, case statements
   - Date learned: May 20
@@ -73,8 +73,8 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [x] `$display` and `$write` for console output
   - Date learned: May 20
 
-- [ ] `$monitor` for continuous signal tracking
-  - Date learned: ______________
+- [x] `$monitor` for continuous signal tracking
+  - Date learned: July 1
 
 - [x] `$finish` to end simulation gracefully
   - Date learned: May 20
@@ -86,8 +86,8 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [x] `$readmemh` to load hex test data
   - Date learned: May 23
 
-- [ ] `$writememb` to save test results
-  - Date learned: ______________
+- [x] `$writememb` to save test results
+  - Date learned: July 1
 
 - [x] File output with `$fopen`, `$fwrite`
   - Date learned: May 23
@@ -120,31 +120,31 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [x] Creating pipeline stages with intermediate registers
   - Date learned: May 23
 
-- [ ] Understanding latency vs. throughput
-  - Date learned: ______________
+- [x] Understanding latency vs. throughput
+  - Date learned: July 1
 
-- [ ] Data and control signal propagation through stages
-  - Date learned: ______________
+- [x] Data and control signal propagation through stages
+  - Date learned: July 1
 
 ### Handshaking & Flow Control
-- [ ] Valid/ready signaling basics
-  - Date learned: ______________
+- [x] Valid/ready signaling basics
+  - Date learned: July 1
 
-- [ ] Implementing a valid/ready register stage
-  - Date learned: ______________
+- [x] Implementing a valid/ready register stage
+  - Date learned: July 1
 
-- [ ] Stalling and back-pressure handling
-  - Date learned: ______________
+- [x] Stalling and back-pressure handling
+  - Date learned: July 1
 
-- [ ] AXI Stream lite protocol (basic familiarity)
-  - Date learned: ______________
+- [x] AXI Stream lite protocol (basic familiarity)
+  - Date learned:  July 1
 
 ### Clock & Reset
-- [ ] Synchronous reset assertion and deassertion
-  - Date learned: ______________
+- [x] Synchronous reset assertion and deassertion
+  - Date learned: July 1
 
-- [ ] Reset distribution in multi-module designs
-  - Date learned: ______________
+- [x] Reset distribution in multi-module designs
+  - Date learned: July 1
 
 - [ ] Clock domain basics (single domain, intro to CDC)
   - Date learned: ______________
@@ -167,21 +167,21 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
   - Date learned: May 23
 
 ### Saturation & Overflow
-- [ ] Detecting overflow conditions
-  - Date learned: ______________
+- [x] Detecting overflow conditions
+  - Date learned: July 1
 
 - [x] Implementing saturation logic
   - Date learned: May 23
 
-- [ ] Wrapping vs. saturating behavior
-  - Date learned: ______________
+- [x] Wrapping vs. saturating behavior
+  - Date learned: July 1
 
 ### Parameterized Arithmetic
-- [ ] Writing generic multipliers and adders with parameters
-  - Date learned: ______________
+- [x] Writing generic multipliers and adders with parameters
+  - Date learned: July 1
 
-- [ ] Bit-width propagation through parameterized modules
-  - Date learned: ______________
+- [x] Bit-width propagation through parameterized modules
+  - Date learned: July 1
 
 - [ ] MATLAB/Python reference modeling for numeric validation
   - Date learned: ______________
@@ -191,14 +191,14 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 ## Integration & System Design
 
 ### Module Hierarchy
-- [ ] Creating a wrapper or top-level module
-  - Date learned: ______________
+- [x] Creating a wrapper or top-level module
+  - Date learned: July 1
 
 - [x] Connecting multiple submodules in sequence (pipeline)
   - Date learned: May 21
 
-- [ ] Managing port fan-out and naming consistency
-  - Date learned: ______________
+- [x] Managing port fan-out and naming consistency
+  - Date learned: July 1
 
 ### Audio DSP Specifics
 - [x] Structuring a gain stage module
@@ -207,21 +207,21 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [x] Building a simple FIR filter in hardware
   - Date learned: May 25
 
-- [ ] Understanding latency in DSP blocks
-  - Date learned: ______________
+- [x] Understanding latency in DSP blocks
+  - Date learned: July 1
 
 - [ ] Coefficient storage (parameters, ROM, BRAM)
   - Date learned: ______________
 
 ### System-Level Thinking
-- [ ] Defining clear module interfaces
-  - Date learned: ______________
+- [x] Defining clear module interfaces
+  - Date learned: July 1
 
-- [ ] Documenting assumptions (bit widths, timing, latency)
-  - Date learned: ______________
+- [x] Documenting assumptions (bit widths, timing, latency)
+  - Date learned: July 1
 
-- [ ] Planning for testability in larger designs
-  - Date learned: ______________
+- [x] Planning for testability in larger designs
+  - Date learned: July 1
 
 ---
 
@@ -234,21 +234,21 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
 - [x] Compiling and running simulations
   - Date learned: May 18
 
-- [ ] Debugging with `-g` flag and GTKWave
-  - Date learned: ______________
+- [x] Debugging with GTKWave
+  - Date learned: May 18
 
 ### Vivado Synthesis
-- [ ] Creating a new Vivado project and adding Verilog files
-  - Date learned: ______________
+- [x] Creating a new Vivado project and adding Verilog files
+  - Date learned: July 1
 
-- [ ] Running synthesis and viewing reports
-  - Date learned: ______________
+- [x] Running synthesis and viewing reports
+  - Date learned: July 1
 
 - [ ] Recognizing inferred vs. explicit resources (multipliers, adders, BRAM)
   - Date learned: ______________
 
-- [ ] Constraint files (XDC) for timing and I/O
-  - Date learned: ______________
+- [x] Constraint files (XDC) for timing and I/O
+  - Date learned: July 1
 
 ### Implementation & Place & Route
 - [ ] Running place and route in Vivado
@@ -272,7 +272,6 @@ Track your progress through the core Verilog skills needed for the 4-month roadm
   - Date learned: ______________
 
 - [ ] Assertion-based checking
-  - Date learned: ______________
 
 ### Comparison Against Reference
 - [ ] Loading test vectors from MATLAB/Python CSV or binary

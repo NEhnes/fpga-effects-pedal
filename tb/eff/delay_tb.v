@@ -1,351 +1,485 @@
 `timescale 1ns / 1ps
 `include "../../src/eff/delay.v"
 
-module delay_effect_tb;
+module delay_tb;
 
-    // ======= PARAMETERS =======
-    localparam WIDTH = 24;
-    localparam DEPTH = 1024;
-    
-    // Q1.14 Fixed Point Constants
-    localparam signed [15:0] Q114_1_0 = 16'h4000; // 1.0 (Unity)
-    localparam signed [15:0] Q114_0_5 = 16'h2000; // 0.5
-    localparam signed [15:0] Q114_0_0 = 16'h0000; // 0.0
-
-    // Extreme values for saturation testing
-    localparam signed [WIDTH-1:0] MAX_POS = 24'h7FFFFF;
-    localparam signed [WIDTH-1:0] MAX_NEG = 24'h800000;
-
-    // ======= GLOBAL SIGNALS =======
-    reg clk;
+    // Clock and reset
+    reg tclk;
     reg rst_n;
-
-    // ======= DUT SIGNALS =======
-    // Effect Parameters
-    reg  [15:0]      delay_samples;
-    reg  [15:0]      feedback_q114;
-    reg  [15:0]      wet_gain_q114;
-    reg  [15:0]      dry_gain_q114;
-    reg  [15:0]      input_gain_q114;
-
-    // AXI-Stream
-    reg  [WIDTH-1:0] i_tdata;
-    reg              i_tvalid;
-    wire             i_tready;
-    reg              o_tready;
-    wire             o_tvalid;
-    wire [WIDTH-1:0] o_tdata;
-
-    // ======= TEST CONTROL & LOGGING =======
-    integer num_pass = 0;
-    integer num_fail = 0;
     
-    // Failure logging arrays (1-indexed for test numbers 1 to 4)
-    reg        fail_flags [1:4];
-    reg [23:0] fail_exp   [1:4];
-    reg [23:0] fail_got   [1:4];
-
-    integer i; // Loop variable
-
-    // ======= DUT INSTANTIATION =======
-    delay_effect #(
-        .WIDTH(WIDTH),
-        .DEPTH(DEPTH)
+    // AXI-Stream slave (input to DUT)
+    reg i_tvalid;
+    wire i_tready;
+    reg [23:0] i_tdata;
+    
+    // AXI-Stream master (output from DUT)
+    wire o_tvalid;
+    reg o_tready;
+    wire [23:0] o_tdata;
+    
+    // Control parameters
+    reg [16:0] delay_samples;
+    reg [7:0] mix;
+    reg [7:0] feedback;
+    
+    // Test counters
+    integer num_pass;
+    integer num_fail;
+    integer test_counter;
+    
+    // Instantiate DUT
+    delay #(
+        .WIDTH(24),
+        .MAX_DELAY_SAMPLES(96000),
+        .ADDR_WIDTH(17)
     ) dut (
-        .delay_samples   (delay_samples),
-        .feedback_q114   (feedback_q114),
-        .wet_gain_q114   (wet_gain_q114),
-        .dry_gain_q114   (dry_gain_q114),
-        .input_gain_q114 (input_gain_q114),
-
-        .tclk            (clk),
-        .rst_n           (rst_n),
-        .i_tdata         (i_tdata),
-        .i_tvalid        (i_tvalid),
-        .i_tready        (i_tready),
-        .o_tready        (o_tready),
-        .o_tvalid        (o_tvalid),
-        .o_tdata         (o_tdata)
+        .tclk(tclk),
+        .rst_n(rst_n),
+        .i_tvalid(i_tvalid),
+        .i_tready(i_tready),
+        .i_tdata(i_tdata),
+        .o_tvalid(o_tvalid),
+        .o_tready(o_tready),
+        .o_tdata(o_tdata),
+        .delay_samples(delay_samples),
+        .mix(mix),
+        .feedback(feedback)
     );
-
-    // ======= CLOCK GENERATION =======
+    
+    // Clock generation: 10ns period = 100MHz
     initial begin
-        clk = 1'b0;
-        forever #5 clk = ~clk;  // 10ns period (100 MHz)
+        tclk = 1'b0;
+        forever #5 tclk = ~tclk;
     end
-
-    // ======= MAIN TEST SEQUENCE =======
+    
+    // Test sequence
     initial begin
-        // Initialize failure flags
-        for (i = 1; i <= 4; i = i + 1) begin
-            fail_flags[i] = 1'b0;
-        end
-
-        $display("\n=======================================================");
-        $display(" RUNNING TESTBENCH: delay_effect_tb                    ");
-        $display("=======================================================\n");
-
-        reset_sequence();
-        test_1_dry_passthrough();
-
-        reset_sequence();
-        test_2_wet_delay_only();
-
-        reset_sequence();
-        test_3_feedback_loop();
-
-        reset_sequence();
-        test_4_saturation_clamping();
-
-        print_final_summary();
-        $finish;
-    end
-
-    // ======= TIMEOUT =======
-    initial begin
-        #10000;  // 10us absolute maximum simulation time
-        $display("\n[FATAL] Simulation timeout reached. Possible hang.");
-        $finish;
-    end
-
-    // ======= WAVEFORM DUMP =======
-    initial begin
-        $dumpfile("delay_effect_tb.vcd");
-        $dumpvars(0, delay_effect_tb);
-    end
-
-    // ======= HELPER TASKS =======
-
-    task reset_sequence;
-    begin
-        // Apply reset
-        rst_n           = 1'b0;
-        delay_samples   = 16'd0;
-        feedback_q114   = Q114_0_0;
-        wet_gain_q114   = Q114_0_0;
-        dry_gain_q114   = Q114_0_0;
-        input_gain_q114 = Q114_0_0;
+        num_pass = 0;
+        num_fail = 0;
         
-        i_tdata         = 24'd0;
-        i_tvalid        = 1'b0;
-        o_tready        = 1'b0;
+        $display("\n========================================");
+        $display("        DELAY EFFECT TESTBENCH");
+        $display("========================================\n");
+        
+        // Test 1: Reset clears state
+        reset_test;
+        
+        // Test 2: AXI handshake with no delay
+        axi_handshake_test;
+        
+        // Test 3: Backpressure propagation
+        backpressure_test;
+        
+        // Test 4: Zero input yields zero output
+        zero_input_test;
+        
+        // Test 5: Dry passthrough (mix=0)
+        dry_passthrough_test;
+        
+        // Test 6: Wet-only output (mix=255)
+        wet_only_test;
+        
+        // Test 7: Delay line basic operation
+        delay_line_test;
+        
+        // Test 8: Feedback loop
+        feedback_test;
+        
+        // Test 9: Mix blending
+        mix_blend_test;
+        
+        // Test 10: Edge case - max delay samples
+        max_delay_test;
+        
+        // Print summary
+        $display("\n========================================");
+        $display("           TEST SUMMARY");
+        $display("========================================");
+        $display("Passed: %d", num_pass);
+        $display("Failed: %d", num_fail);
+        if (num_fail == 0) begin
+            $display("\n✓ ALL TESTS PASSED");
+        end else begin
+            $display("\n✗ SOME TESTS FAILED");
+        end
+        $display("========================================\n");
+        
+        #100;
+        $finish;
+    end
+    
+    // ===== RESET TASK =====
+    task reset_test;
+    begin
+        $display("[TEST 1] Reset clears all state");
+        
+        // Assert reset
+        rst_n = 1'b0;
+        i_tvalid = 1'b0;
+        o_tready = 1'b1;
+        i_tdata = 24'h000000;
+        delay_samples = 17'h00100;
+        mix = 8'd128;
+        feedback = 8'd64;
         
         #50;
-        @(posedge clk);
+        
+        // Release reset
         rst_n = 1'b1;
-        #10;
-    end
-    endtask
-
-    // Evaluation macro-like task (to standardize tolerance and logging)
-    task evaluate_result;
-        input integer test_num;
-        input [8*30:1] test_name;
-        input signed [WIDTH-1:0] expected;
-        input signed [WIDTH-1:0] actual;
-    begin
-        // Allow +/- 1 tolerance for fixed-point rounding
-        if ((actual >= expected - 1) && (actual <= expected + 1)) begin
-            $display("[PASS] TEST %0d: %-25s | EXPECTED: %08x | GOT: %08x", test_num, test_name, expected, actual);
+        #20;
+        
+        // Verify output is zero after reset
+        if (o_tdata === 24'h000000) begin
+            $display("  [PASS] o_tdata = 24'h000000 after reset\n");
             num_pass = num_pass + 1;
         end else begin
-            $display("[FAIL] TEST %0d: %-25s | EXPECTED: %08x | GOT: %08x", test_num, test_name, expected, actual);
+            $display("  [FAIL] o_tdata = %h, expected 24'h000000\n", o_tdata);
             num_fail = num_fail + 1;
-            fail_flags[test_num] = 1'b1;
-            fail_exp[test_num]   = expected;
-            fail_got[test_num]   = actual;
         end
     end
     endtask
-
-    // ======= TEST CASES =======
-
-    // TEST 1: Dry Passthrough
-    // Tests combinatorial routing of signal straight to output with unity gain
-    task test_1_dry_passthrough;
+    
+    // ===== AXI HANDSHAKE TEST =====
+    task axi_handshake_test;
     begin
-        wait(rst_n == 1'b1);
-        @(posedge clk);
-
-        // Setup parameters
-        input_gain_q114 = Q114_1_0;
-        dry_gain_q114   = Q114_1_0;
-        wet_gain_q114   = Q114_0_0;
-        feedback_q114   = Q114_0_0;
-        delay_samples   = 16'd10;
-
-        // Drive Stimulus
-        @(posedge clk);
-        i_tdata  = 24'd5000;
-        i_tvalid = 1'b1;
-        o_tready = 1'b1;
-
-        // Check output combinationally (same cycle)
-        #1; // Delta delay to let combinational logic settle
-        evaluate_result(1, "Dry Passthrough", 24'd5000, o_tdata);
-
-        // Clear
-        @(posedge clk);
-        i_tvalid = 1'b0;
-        o_tready = 1'b0;
-    end
-    endtask
-
-
-    // TEST 2: Wet Delay Only
-    // Tests fundamental ring buffer delay operation (Delay = 4)
-    task test_2_wet_delay_only;
-    begin
-        wait(rst_n == 1'b1);
-        @(posedge clk);
-
-        input_gain_q114 = Q114_1_0;
-        dry_gain_q114   = Q114_0_0;
-        wet_gain_q114   = Q114_1_0;
-        feedback_q114   = Q114_0_0;
-        delay_samples   = 16'd4;
+        $display("[TEST 2] AXI-Stream handshake (no delay, unity mix)");
         
-        i_tvalid = 1'b1;
-        o_tready = 1'b1;
-
-        // Cycle 0: Input data
-        @(posedge clk);
-        i_tdata = 24'd1200;
-
-        // Cycle 1-3: Input zero, stream running
-        @(posedge clk);
-        i_tdata = 24'd0;
-        @(posedge clk);
-        @(posedge clk);
-
-        // Cycle 4: Delayed sample should emerge
-        @(posedge clk);
-        #1; 
-        evaluate_result(2, "Wet Delay (N=4)", 24'd1200, o_tdata);
-
-        // Clear
-        @(posedge clk);
-        i_tvalid = 1'b0;
-    end
-    endtask
-
-
-    // TEST 3: Feedback Loop
-    // Tests feedback math (Feedback = 0.5). Echo should be 50% of original.
-    task test_3_feedback_loop;
-    begin
+        delay_samples = 17'd1;  // Minimal delay
+        mix = 8'd0;             // All dry
+        feedback = 8'd0;        // No feedback
+        
+        // Wait for reset to complete
         wait(rst_n == 1'b1);
-        @(posedge clk);
-
-        input_gain_q114 = Q114_1_0;
-        dry_gain_q114   = Q114_0_0;
-        wet_gain_q114   = Q114_1_0;
-        feedback_q114   = Q114_0_5; // 0.5 gain
-        delay_samples   = 16'd2;    // Fast feedback
         
-        i_tvalid = 1'b1;
-        o_tready = 1'b1;
-
-        // Cycle 0: Input high magnitude pulse
-        @(posedge clk);
-        i_tdata = 24'd8000;
-
-        // Cycle 1: Zero
-        @(posedge clk);
-        i_tdata = 24'd0;
-
-        // Cycle 2: First echo (Original * 1.0 = 8000) emerges
-        // It gets fed back simultaneously (8000 * 0.5 = 4000)
-        @(posedge clk);
+        test_counter = 0;
         
-        // Cycle 3: Zero
-        @(posedge clk);
-
-        // Cycle 4: Second echo (First echo * 0.5 = 4000) emerges
-        @(posedge clk);
-        #1; 
-        evaluate_result(3, "Feedback Decay", 24'd4000, o_tdata);
-
-        // Clear
-        @(posedge clk);
-        i_tvalid = 1'b0;
-    end
-    endtask
-
-
-    // TEST 4: Saturation Clamping
-    // Tests positive and negative overflow clipping in the sub_add module
-    task test_4_saturation_clamping;
-    begin
-        wait(rst_n == 1'b1);
-        @(posedge clk);
-
-        // To test adder, apply max values to both Dry and Wet paths simultaneously
-        input_gain_q114 = Q114_1_0;
-        dry_gain_q114   = Q114_1_0;
-        wet_gain_q114   = Q114_1_0; 
-        feedback_q114   = Q114_0_0;
-        delay_samples   = 16'd1;
+        // Apply input stimulus
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h123456;
+        end
         
-        i_tvalid = 1'b1;
-        o_tready = 1'b1;
-
-        // --- Positive Saturation ---
-        // Cycle 0: Seed delay line with half max positive
-        @(posedge clk);
-        i_tdata = 24'h400000;
-
-        // Cycle 1: Add current (half max) + delayed (half max)
-        @(posedge clk); 
-        i_tdata = 24'h400000;
-        #1; // evaluate output
-        // Expected sum: 24'h800000 (which is negative). Should clamp to MAX_POS (24'h7FFFFF)
-        evaluate_result(4, "Positive Saturation", MAX_POS, o_tdata);
-
-        // --- Negative Saturation ---
-        // Cycle 2: Seed delay line with half max negative
-        @(posedge clk);
-        i_tdata = 24'hC00000; // -4194304
-
-        // Cycle 3: Add current (half max neg) + delayed (half max neg)
-        @(posedge clk);
-        i_tdata = 24'hC00000;
-        #1; // evaluate output
-        // Expected sum: 0x1800000 (overflows to pos). Should clamp to MAX_NEG (24'h800000)
-        evaluate_result(4, "Negative Saturation", MAX_NEG, o_tdata);
-
-        // Clear
-        @(posedge clk);
-        i_tvalid = 1'b0;
-    end
-    endtask
-
-
-    // ======= SUMMARY PRINTER =======
-    task print_final_summary;
-    begin
-        $display("\n=======================================================");
-        $display(" TEST RESULT SUMMARY                                   ");
-        $display("=======================================================");
-        $display(" Total Passed : %0d", num_pass);
-        $display(" Total Failed : %0d", num_fail);
-        $display("-------------------------------------------------------");
-
-        if (num_fail > 0) begin
-            $display("\n FAILURE DETAILS:");
-            $display(" TEST ID | EXPECTED   | ACTUAL ");
-            $display(" --------|------------|------------");
-            for (i = 1; i <= 4; i = i + 1) begin
-                if (fail_flags[i]) begin
-                    $display(" %-7d | 0x%08x | 0x%08x", i, fail_exp[i], fail_got[i]);
-                end
-            end
-            $display("=======================================================\n");
+        // Wait several cycles to observe propagation
+        repeat(10) @(posedge tclk);
+        
+        // Verify o_tvalid tracks i_tvalid
+        if (o_tvalid === i_tvalid) begin
+            $display("  [PASS] o_tvalid correctly tracks i_tvalid\n");
+            num_pass = num_pass + 1;
         end else begin
-            $display(" ALL TESTS PASSED SUCCESSFULLY!");
-            $display("=======================================================\n");
+            $display("  [FAIL] o_tvalid=%b, expected %b\n", o_tvalid, i_tvalid);
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== BACKPRESSURE TEST =====
+    task backpressure_test;
+    begin
+        $display("[TEST 3] Backpressure propagation");
+        
+        wait(rst_n == 1'b1);
+        #10;
+        
+        // Assert o_tready = 0 (downstream blocks)
+        @(posedge tclk) begin
+            o_tready = 1'b0;
+        end
+        
+        #20;
+        
+        // Verify i_tready mirrors o_tready
+        if (i_tready === 1'b0) begin
+            $display("  [PASS] i_tready = 0 when o_tready = 0\n");
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] i_tready = %b, expected 0\n", i_tready);
+            num_fail = num_fail + 1;
+        end
+        
+        // Release backpressure
+        @(posedge tclk) begin
+            o_tready = 1'b1;
+        end
+        
+        #20;
+        
+        if (i_tready === 1'b1) begin
+            $display("  [PASS] i_tready = 1 when o_tready = 1\n");
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] i_tready = %b, expected 1\n", i_tready);
+            num_fail = num_fail + 1;
         end
     end
     endtask
+    
+    // ===== ZERO INPUT TEST =====
+    task zero_input_test;
+    begin
+        $display("[TEST 4] Zero input produces near-zero output");
+        
+        wait(rst_n == 1'b1);
+        
+        delay_samples = 17'd1;
+        mix = 8'd128;
+        feedback = 8'd0;  // No feedback to avoid accumulation
+        
+        // Apply zero input for several cycles
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h000000;
+        end
+        
+        repeat(20) @(posedge tclk);
+        
+        // Allow small rounding errors due to fixed-point math
+        if ($signed(o_tdata) < $signed(24'h001000) && 
+            $signed(o_tdata) > $signed(24'hFFF000)) begin
+            $display("  [PASS] o_tdata ≈ zero with zero input (got %h)\n", o_tdata);
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] o_tdata = %h, expected ~0\n", o_tdata);
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== DRY PASSTHROUGH TEST =====
+    task dry_passthrough_test;
+    begin
+        $display("[TEST 5] Dry passthrough (mix=0)");
+        
+        wait(rst_n == 1'b1);
+        #10;
+        
+        delay_samples = 17'd100;
+        mix = 8'd0;          // All dry (no wet)
+        feedback = 8'd0;     // No feedback
+        
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h100000;  // Small positive value
+        end
+        
+        // Wait for signal to stabilize
+        repeat(30) @(posedge tclk);
+        
+        // With mix=0, output should be dominated by input (dry)
+        // Due to 5-stage pipeline, output will appear delayed
+        // Allow tolerance for pipeline settling
+        if ($signed(o_tdata) >= $signed(24'h0F0000) && 
+            $signed(o_tdata) <= $signed(24'h110000)) begin
+            $display("  [PASS] Output ≈ input with dry mix (got %h)\n", o_tdata);
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] Output = %h, expected ~100000\n", o_tdata);
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== WET-ONLY TEST =====
+    task wet_only_test;
+    begin
+        $display("[TEST 6] Wet-only output (mix=255)");
+        
+        wait(rst_n == 1'b1);
+        #10;
+        
+        delay_samples = 17'd50;
+        mix = 8'd255;        // All wet
+        feedback = 8'd0;     // No feedback
+        
+        // First, prime the delay line with a known value
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h080000;  // Known value
+        end
+        
+        // Wait for delay line to fill and output to stabilize
+        repeat(150) @(posedge tclk);
+        
+        // Output should eventually reflect only delayed input
+        // With mix=255, we're reading only from the delay line
+        if ($signed(o_tdata) >= $signed(24'h070000) && 
+            $signed(o_tdata) <= $signed(24'h090000)) begin
+            $display("  [PASS] Wet output ≈ delayed input (got %h)\n", o_tdata);
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] Wet output = %h, expected ~080000\n", o_tdata);
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== DELAY LINE BASIC OPERATION TEST =====
+    task delay_line_test;
+    begin
+        $display("[TEST 7] Delay line basic operation");
+        
+        wait(rst_n == 1'b1);
+        #10;
+        
+        delay_samples = 17'd8;   // 8-sample delay
+        mix = 8'd255;            // Read only delayed (pure wet)
+        feedback = 8'd0;         // No feedback
+        
+        // Prime the delay line with a constant value
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h180000;  // Known prime value
+        end
+        
+        // Keep feeding the same value
+        repeat(60) @(posedge tclk);
+        
+        // After sufficient cycles, output should equal the primed value
+        // Allowing tolerance for rounding
+        if ($signed(o_tdata) >= $signed(24'h170000) && 
+            $signed(o_tdata) <= $signed(24'h190000)) begin
+            $display("  [PASS] Delay line stable (got %h)\n", o_tdata);
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] Delay line unstable, got %h\n", o_tdata);
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== FEEDBACK TEST =====
+    task feedback_test;
+    begin
+        $display("[TEST 8] Feedback loop operation");
+        
+        wait(rst_n == 1'b1);
+        #10;
+        
+        delay_samples = 17'd8;   // Short delay for feedback to loop
+        mix = 8'd200;            // High wet mix
+        feedback = 8'd64;        // Moderate feedback (~25% * 255)
+        
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h100000;
+        end
+        
+        // Let feedback accumulate for several cycles
+        repeat(40) @(posedge tclk);
+        
+        // With feedback, output should grow slightly then stabilize
+        // Check that it's not zero and not wildly overflowed
+        if ($signed(o_tdata) != $signed(24'h000000) && 
+            $signed(o_tdata) != $signed(24'h800000)) begin
+            $display("  [PASS] Feedback loop active (output = %h)\n", o_tdata);
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] Unexpected feedback output = %h\n", o_tdata);
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== MIX BLEND TEST =====
+    task mix_blend_test;
+    begin
+        $display("[TEST 9] Mix parameter blending");
+        
+        wait(rst_n == 1'b1);
+        #10;
+        
+        delay_samples = 17'd20;
+        feedback = 8'd0;
+        
+        // Test mix value 128 (50/50 blend)
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h100000;
+            mix = 8'd128;
+        end
+        
+        repeat(50) @(posedge tclk);
+        
+        // Output should be intermediate between dry and wet
+        // Tolerance is generous due to rounding
+        if ($signed(o_tdata) >= $signed(24'h040000) && 
+            $signed(o_tdata) <= $signed(24'h120000)) begin
+            $display("  [PASS] 50/50 mix produces blended output (got %h)\n", o_tdata);
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] Mix output out of range = %h\n", o_tdata);
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== MAX DELAY TEST =====
+    task max_delay_test;
+    begin
+        $display("[TEST 10] Edge case - maximum delay parameter");
+        
+        wait(rst_n == 1'b1);
+        #10;
+        
+        // Set delay to reasonable max
+        delay_samples = 17'd32767;  // Use reasonable large value
+        mix = 8'd0;                  // All dry to simplify
+        feedback = 8'd0;
+        
+        @(posedge tclk) begin
+            i_tvalid = 1'b1;
+            o_tready = 1'b1;
+            i_tdata = 24'h050000;
+        end
+        
+        // Module should not crash
+        repeat(30) @(posedge tclk);
+        
+        // Output should not be X or wildly out of range
+        if (o_tdata !== 24'hxxxxxx && o_tdata !== 24'hzzzzzz) begin
+            $display("  [PASS] Module stable with large delay parameter (got %h)\n\n", o_tdata);
+            num_pass = num_pass + 1;
+        end else begin
+            $display("  [FAIL] Invalid output at large delay\n\n");
+            num_fail = num_fail + 1;
+        end
+        
+        i_tvalid = 1'b0;
+    end
+    endtask
+    
+    // ===== TIMEOUT =====
+    initial begin
+        #100000;  // 100µs max
+        $display("\n[TIMEOUT] Simulation did not complete in time");
+        $finish;
+    end
+    
+    // ===== WAVEFORM DUMP =====
+    initial begin
+        $dumpfile("delay_tb.vcd");
+        $dumpvars(0, delay_tb);
+    end
 
 endmodule

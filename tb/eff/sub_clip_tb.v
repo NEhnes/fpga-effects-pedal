@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "hard_clip.v"
+`include "../../src/eff/hard_clip.v"
 
 module sub_clip_tb;
 

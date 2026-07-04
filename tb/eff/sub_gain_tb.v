@@ -1,6 +1,6 @@
 // claude fixed up my testbench
 `timescale 1ns / 1ps
-`include "hard_clip.v"
+`include "../../src/eff/hard_clip.v"
 
 module sub_gain_tb();
     reg signed [23:0] i_sample;

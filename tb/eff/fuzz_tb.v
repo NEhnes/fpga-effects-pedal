@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "fuzz.v"
+`include "../../src/eff/fuzz.v"
 
 module fuzz_tb();
 

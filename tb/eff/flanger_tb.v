@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "flanger.v"
+`include "../../src/eff/flanger.v"
 
 module flanger_tb;
 
