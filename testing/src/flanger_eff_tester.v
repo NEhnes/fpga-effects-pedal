@@ -5,8 +5,14 @@
  * FLANGER EFFECT TESTER
  *
  * Reads 16-bit signed hex values from input.hex, runs them through the
- * flanger DSP effect (variable-delay with LFO modulation), and writes 
+ * flanger DSP effect (variable-delay with LFO modulation), and writes
  * the processed output to output.hex.
+ *
+ * PIPELINE TIMING:
+ *   Input is fed on cycle N.
+ *   Output from that input appears on cycle N+1 (1-cycle delay).
+ *   This testbench accounts for the pipeline depth by reading audio_out
+ *   at the START of each cycle (before feeding the next input).
  *
  * Usage:
  *   1. Place input.hex in the data directory (one 16-bit hex value per line)
@@ -18,15 +24,13 @@
  *   - feedback:    Feedback coefficient (0-32767 in Q15 format)
  *   - lfo_freq:    LFO oscillation frequency control
  *   - MAX_DELAY:   Size of delay line buffer (samples)
- *
- * Note: Flanger has 1-cycle pipeline delay due to write-update logic.
  */
 module flanger_eff_tester();
 
   // ======= CONFIGURABLE PARAMETERS =======
   parameter PIPELINE_DEPTH = 1;           // Flanger updates output register each cycle
   parameter MAX_DELAY = 4096;             // Delay line size
-  parameter DATA_WIDTH = 16;
+  parameter DATA_WIDTH = 24;
 
   // ======= CLOCK AND RESET =======
   reg clk;
@@ -86,19 +90,19 @@ module flanger_eff_tester();
 
     // ---- Reset ----
     reset_n = 1'b0;
-    audio_in  = 16'h0000;
-    depth     = 16'h0000;
-    feedback  = 16'h0000;
-    lfo_freq  = 16'h0000;
+    audio_in  = {DATA_WIDTH{1'b0}};
+    depth     = {DATA_WIDTH{1'b0}};
+    feedback  = {DATA_WIDTH{1'b0}};
+    lfo_freq  = {DATA_WIDTH{1'b0}};
     #50;
     reset_n = 1'b1;
     #20;
 
-    // ---- Configure effect with MODERATE/CLASSIC FLANGER parameters ----
-    // Classic chorus/flanger sound: moderate depth + subtle feedback
-    depth      = 16'h0080;      // ~8 samples of max delay (subtle modulation)
-    feedback   = 16'h2000;      // Q15: ~0.25 feedback coefficient (mild comb filtering)
-    lfo_freq   = 16'h0008;      // Slow LFO sweep (~0.5 Hz equivalent)
+    // ---- Configure effect with subtle FLANGER parameters ----
+    // Classic flanger: very short delay (<1ms), light feedback for gentle comb filtering
+    depth      = 24'h000010;      // ~1.6 samples of max delay (~33us @48kHz) — subtle sweep
+    feedback   = 24'h020000;      // Q23: ~0.0156 feedback — whisper of comb filtering
+    lfo_freq   = 24'h000008;      // Slow LFO sweep (~0.5 Hz equivalent)
 
     // ---- Open files ----
     fd_in = $fopen("../data/input.hex", "r");
@@ -147,36 +151,42 @@ module flanger_eff_tester();
       $finish;
     end
 
-    // ---- Phase 1: Feed first sample and account for pipeline delay ----
-    // Flanger updates on clock edge, so first valid output appears after 1 cycle
-    if (num_samples > 0) begin
-      @(posedge clk) begin
-        audio_in = sample_mem[0];
-      end
+    // ---- Phase 1: Prime the pipeline ----
+    // Feed samples continuously for MAX_DELAY cycles to fill the delay line.
+    // During this warmup, output will be transitioning from zero (no feedback yet).
+    // After MAX_DELAY cycles, the delay line is full and effect is stable.
+    $display("  Priming delay line for %0d cycles...", MAX_DELAY);
+    
+    for (i = 0; i < MAX_DELAY && i < num_samples; i = i + 1) begin
+      @(posedge clk) audio_in = sample_mem[i];
     end
+    
+    // Wait a few extra cycles for the effect to stabilize
+    repeat(10) @(posedge clk);
+    $display("  Delay line primed. Starting output capture.");
 
     // ---- Phase 2: Full throughput (1 sample/cycle) ----
-    // Note: First output (from initial reset state) is discarded as warmup
+    // At the start of each cycle, capture the output from the previous input.
+    // Then feed the next input for processing on the next cycle.
     sample_count = 0;
 
-    for (i = 1; i < num_samples; i = i + 1) begin
+    for (i = MAX_DELAY; i < num_samples; i = i + 1) begin
       @(posedge clk) begin
+        // Capture output from the previous input (now available)
+        $fwrite(fd_out, "%06h\n", audio_out);
+        sample_count = sample_count + 1;
+
+        // Feed next input for processing on the next cycle
         audio_in = sample_mem[i];
-        // Capture output from previous cycle
-        if (i > 1) begin  // Skip first result (pipeline initialization)
-          $fwrite(fd_out, "%04h\n", audio_out);
-          sample_count = sample_count + 1;
-        end
       end
     end
 
     // ---- Phase 3: Capture final output ----
+    // Feed silence and read out the last processed sample
     @(posedge clk) begin
-      audio_in = 16'h0000;  // Feed silence
-      if (num_samples > 1) begin
-        $fwrite(fd_out, "%04h\n", audio_out);
-        sample_count = sample_count + 1;
-      end
+      $fwrite(fd_out, "%04h\n", audio_out);
+      sample_count = sample_count + 1;
+      audio_in = 16'h0000;
     end
 
     // ---- Done ----

@@ -99,7 +99,7 @@ module noise_gate_eff_tester();
     threshold   = 16'h0000; // gate always open
     attack      = 16'h0000; // instant fade-in
     release_len = 16'h0000; // instant release
-    makeup_gain = 16'h4000; // unity
+    makeup_gain = 16'h0000; // less than unity
 
     #50;
     rst_n = 1'b1;
@@ -110,7 +110,7 @@ module noise_gate_eff_tester();
     threshold   = 16'h7777; // halfway
     attack      = 16'h1388; // halfway through usable range
     release_len = 16'h1388; // default
-    makeup_gain = 16'h4000; // unity
+    makeup_gain = 16'h1000; // unity
 
     // ---- Open files ----
     fd_in = $fopen("../data/input.hex", "r");
