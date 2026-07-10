@@ -98,12 +98,12 @@ module hardclip_eff_tester();
 
     // ---- Configure effect ----
     // Typical hard clip: moderate boost + moderate clipping
-    // input_gain     = 16'h6000;    // ~1.5x gain (Q1.14)
-    // normalized_clip = 16'h6000;   // Moderate clip threshold (Q0.16)
+    // input_gain     = 16'h6000;    // ~1.5x gain (Q1.14) --> 3000-6000 standard
+    // normalized_clip = 16'h2000;   // Moderate clip threshold (Q0.16) --> 2000-6000 std
 
     // super AGGRESSIVE clip - proof of concept
     input_gain     = 16'h7FFF;    // 4.0x boost
-    normalized_clip = 16'h4000;   // Heavy clipping at 0.25 threshold
+    normalized_clip = 16'h4000;   // Heavy clipping at 0.125 threshold
 
     // ---- Open files ----
     fd_in = $fopen("../data/input.hex", "r");
