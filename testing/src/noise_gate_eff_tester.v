@@ -31,7 +31,7 @@ module noise_gate_eff_tester();
     threshold = 16'h0000; attack = 0; release_len = 0; makeup_gain = 16'h2000;
     #50;
     rst_n = 1'b1;
-    threshold = 16'h0800;
+    threshold = 16'h1D00;
     attack = 16'd64;
     release_len = 16'd2048;
     makeup_gain = 16'h2000;
