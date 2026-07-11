@@ -1,3 +1,0 @@
-python3 waveview.py output.hex
-
-./term_wave.py output.hex
