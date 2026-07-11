@@ -6,6 +6,7 @@ vvp effect_tester_tb.out
 # CONVERT TO WAV
 python3 hex24_to_wav.py output.hex effect_output.wav --rate 48000 --channels 1
 
+# DISPLAY
 ./term_wave.py output.hex
 
 
