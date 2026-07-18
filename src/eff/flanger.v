@@ -43,7 +43,7 @@
 
 module flanger #(
     parameter MAX_DELAY  = 4096,
-    parameter DATA_WIDTH = 16
+    parameter DATA_WIDTH = 24
 )(
     input  wire                    clk,
     input  wire                    reset_n,

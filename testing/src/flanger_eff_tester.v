@@ -26,9 +26,9 @@ module flanger_eff_tester();
     reset_n = 0; audio_in = 0;
     // Audible flanger settings for 48 kHz audio:
     // 256-sample sweep (~5.3 ms), ~0.5 Hz LFO, and 18.75% feedback.
-    depth = 24'h00F000; // 0x008000 – 0x020000 range [gemini] higher=noticeable
-    feedback = 24'h500000; // 0x200000 – 0x600000 range [gemini] higher=noticeable
-    lfo_freq = 24'h000200; // 0x000300 – 0x001400 range [gemini] lower=noticeable
+    depth = 24'h000258; // 0x008000 – 0x020000 range [gemini] higher=noticeable
+    feedback = 24'h005000; // 0x200000 – 0x600000 range [gemini] higher=noticeable
+    lfo_freq = 24'h000800; // 0x000300 – 0x001400 range [gemini] lower=noticeable
     #50; reset_n = 1;
     fd_in = $fopen("../data/input.hex", "r");
     if (!fd_in) begin $display("[ERROR] Could not open input.hex"); $finish; end
