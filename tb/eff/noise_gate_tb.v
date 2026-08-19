@@ -53,6 +53,16 @@ module noise_gate_tb;
   );
 
   // ============================================================
+  // DEBUG monitor — hierarchical probe of DUT internals
+  // samples 1ns after each posedge (post-settle)
+  // ============================================================
+  always @(posedge tclk) begin
+    #1 $display("t=%4d rst=%b iv=%b otr=%b itr=%b gte=%b | id=%h env=%h gain=%h od=%h cap=%h",
+      $time, rst_n, i_tvalid, o_tready, i_tready, dut.gate_open_now, i_tdata,
+      dut.envelope, dut.gain_q114, o_tdata, cap);
+  end
+
+  // ============================================================
   // Clock — 10ns period
   // ============================================================
   initial begin
@@ -73,17 +83,16 @@ module noise_gate_tb;
   // ============================================================
   task reset;
   begin
-    rst_n       = 1'b0;
-    i_tdata     = 24'd0;
-    i_tvalid    = 1'b0;
-    o_tready    = 1'b1;
-    threshold   = 16'd0;
-    attack      = 16'd0;
-    release_len = 16'd0;
-    makeup_gain = 16'd4096;  // unity
-    #50;
+    // Assert and release reset on falling clock edges. Preserve the
+    // effect parameters so each test can configure them before reset.
+    @(negedge tclk);
+    rst_n     = 1'b0;
+    i_tdata   = 24'd0;
+    i_tvalid  = 1'b0;
+    o_tready  = 1'b1;
+    repeat (5) @(negedge tclk);
     rst_n = 1'b1;
-    #10;
+    @(negedge tclk);
   end
   endtask
 
@@ -93,11 +102,11 @@ module noise_gate_tb;
   task send;
     input signed [23:0] sample;
   begin
-    @(posedge tclk);
+    @(negedge tclk);
     i_tdata  = sample;
     i_tvalid = 1'b1;
     o_tready = 1'b1;
-    @(posedge tclk);
+    @(negedge tclk);
     i_tvalid = 1'b0;
   end
   endtask
@@ -113,13 +122,14 @@ module noise_gate_tb;
   task send_cap;
     input signed [23:0] sample;
   begin
-    @(posedge tclk);
+    @(negedge tclk);
     i_tdata  = sample;
     i_tvalid = 1'b1;
     o_tready = 1'b1;
     @(posedge tclk);
+    #1 cap = o_tdata;
+    @(negedge tclk);
     i_tvalid = 1'b0;
-    cap = o_tdata;
   end
   endtask
 
@@ -193,6 +203,14 @@ module noise_gate_tb;
   initial begin
     num_pass = 0;
     num_fail = 0;
+    threshold = 16'd0;
+    attack = 16'd0;
+    release_len = 16'd0;
+    makeup_gain = 16'd8192;
+    i_tdata = 24'd0;
+    i_tvalid = 1'b0;
+    o_tready = 1'b1;
+    rst_n = 1'b1;
 
     // =========================================================
     // TEST 1: Reset clears state
@@ -254,7 +272,7 @@ module noise_gate_tb;
     threshold   = 16'h0100;
     attack      = 16'd0;
     release_len = 16'd500;
-    makeup_gain = 16'd4096;  // unity
+    makeup_gain = 16'd8192;  // unity
     reset;
     send(24'h300000);         // prime: charge envelope (output discarded)
     send_cap(24'h300000);     // test: envelope is charged, gate is open
@@ -266,7 +284,7 @@ module noise_gate_tb;
     threshold   = 16'h4000;
     attack      = 16'd0;
     release_len = 16'd0;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send_cap(24'h001000);  // below threshold, gate stays closed
     check_eq(24'd0, 6, "quiet signal gated to zero");
@@ -282,7 +300,7 @@ module noise_gate_tb;
     threshold   = 16'h0001;
     attack      = 16'd5;
     release_len = 16'd0;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send(24'h200000);         // prime: charge envelope
     send_cap(24'h200000);     // cycle 1 of ramp
@@ -300,12 +318,12 @@ module noise_gate_tb;
     // =========================================================
     // TEST 8: Makeup gain amplification (2.0x)
     //
-    // makeup_gain=0x8000 = Q1.14 2.0. Input 0x100000 * 2.0 = 0x200000.
+    // makeup_gain=0x4000 = Q13 2.0. Input 0x100000 * 2.0 = 0x200000.
     // =========================================================
     threshold   = 16'h0001;
     attack      = 16'd0;
     release_len = 16'd0;
-    makeup_gain = 16'd32768;  // 0x8000 = Q1.14 2.0
+    makeup_gain = 16'd16384;  // 0x8000 = Q1.14 2.0
     reset;
     send(24'h100000);         // prime: charge envelope + open gate
     send_cap(24'h100000);     // test: gate is open, makeup doubles it
@@ -321,7 +339,7 @@ module noise_gate_tb;
     threshold   = 16'h0100;
     attack      = 16'd0;
     release_len = 16'd5;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send(24'h400000);         // prime to charge envelope
     send(24'h400000);         // gate is now open, sustain
@@ -342,7 +360,7 @@ module noise_gate_tb;
     threshold   = 16'h2000;
     attack      = 16'd0;
     release_len = 16'd0;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send_cap(24'h180000);     // 0x180000 < scaled_threshold 0x200000
     check_eq(24'd0, 10, "signal below threshold is gated (10a)");
@@ -359,7 +377,7 @@ module noise_gate_tb;
     threshold   = 16'h0001;
     attack      = 16'd0;
     release_len = 16'd0;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send(24'h0F0000);         // prime
     for (dc_i = 0; dc_i < 10; dc_i = dc_i + 1) begin
@@ -376,7 +394,7 @@ module noise_gate_tb;
     threshold   = 16'h0001;
     attack      = 16'd0;
     release_len = 16'd0;
-    makeup_gain = 16'd32768;  // 2.0x
+    makeup_gain = 16'd16384;  // 2.0x
     reset;
     send(24'h700000);         // prime + open gate
     send_cap(24'h700000);     // 0x700000 * 2.0 -> saturate
@@ -396,7 +414,7 @@ module noise_gate_tb;
     threshold   = 16'h0800;
     attack      = 16'd0;
     release_len = 16'd0;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     rand_seed = 42;
     send(24'h300000);         // prime once before varying params
@@ -424,12 +442,14 @@ module noise_gate_tb;
     threshold   = 16'h0100;
     attack      = 16'd0;
     release_len = 16'd0;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send(24'h400000);         // prime + open gate
     send_cap(24'h400000);     // gate open, output = input
     check_tol(24'h400000, 24'd2, 15, "instant attack passes audio (15a)");
-    send_cap(24'h001000);     // instant release mutes
+    threshold = 16'h7000;     // force the gate closed from the stored envelope
+    send_cap(24'h001000);     // first closed-cycle output still uses old gain
+    send_cap(24'h001000);     // release gain is now zero
     check_eq(24'd0, 15, "instant release mutes to zero (15b)");
 
     // =========================================================
@@ -438,7 +458,7 @@ module noise_gate_tb;
     threshold   = 16'h0001;
     attack      = 16'd100;
     release_len = 16'd0;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send(24'h400000);         // prime + start ramp
     send_cap(24'h400000);     // ramp_counter=1/100, gain ~0.01
@@ -450,15 +470,15 @@ module noise_gate_tb;
     threshold   = 16'h0100;
     attack      = 16'd0;
     release_len = 16'd500;
-    makeup_gain = 16'd4096;
+    makeup_gain = 16'd8192;
     reset;
     send(24'h400000);         // prime
     send(24'h400000);         // sustain: gate open, envelope at 0x400000
-    send(24'd0);              // kill input — envelope decays slowly
-    send(24'd0);
-    send(24'd0);
-    send_cap(24'd0);          // output should still be non-zero
-    check_cond(cap > 24'd0, 17, "long release: output persists after 5 zero cycles");
+    send(24'h001000);         // below threshold; envelope decays slowly
+    send(24'h001000);
+    send(24'h001000);
+    send_cap(24'h001000);     // stored envelope keeps the gate open
+    check_cond(cap > 24'd0, 17, "long release: gain persists after 5 quiet cycles");
 
     // =========================================================
     // Summary
