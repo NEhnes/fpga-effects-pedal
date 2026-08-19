@@ -21,6 +21,7 @@ module fuzz_tb();
     reg [15:0] pos_clip_thresh;   // Q0.16 positive threshold
     reg [15:0] neg_clip_thresh;   // Q0.16 negative threshold
     reg [7:0]  tone_coeff;        // 0-255, 0=bypass
+    reg [15:0] makeup_gain;       // final gain stage (unity = 0x2000 for sub_gain FRAC_BITS=13)
 
     // ======= GLOBAL TEST CONTROL =======
     integer num_pass;
@@ -43,7 +44,8 @@ module fuzz_tb();
         .pre_gain(pre_gain),
         .pos_clip_thresh(pos_clip_thresh),
         .neg_clip_thresh(neg_clip_thresh),
-        .tone_coeff(tone_coeff)
+        .tone_coeff(tone_coeff),
+        .makeup_gain(makeup_gain)
     );
 
     // ======= CLOCK GENERATION =======
@@ -69,6 +71,7 @@ module fuzz_tb();
         pos_clip_thresh = 16'h0000;
         neg_clip_thresh = 16'h0000;
         tone_coeff = 8'd0;
+        makeup_gain = 16'h2000;  // unity
         #50;
         rst_n = 1'b1;
     end
@@ -151,7 +154,8 @@ module fuzz_tb();
         #10;
 
         // Unity gain, high thresholds (no clip), tone bypass
-        send_sample(24'h100000, 16'h4000, 16'h7FFF, 16'h7FFF, 8'd0);
+        // sub_gain uses FRAC_BITS=13, so true unity = 0x2000
+        send_sample(24'h100000, 16'h2000, 16'h7FFF, 16'h7FFF, 8'd0);
 
         @(posedge clk);  // Pipeline depth: gain + clip + tone + register = 1 cycle
         @(posedge clk);
@@ -178,7 +182,8 @@ module fuzz_tb();
         #10;
 
         // ~2x gain, high thresholds, tone bypass
-        send_sample(24'h080000, 16'h7FFF, 16'h7FFF, 16'h7FFF, 8'd0);
+        // FRAC_BITS=13: 0x4000 = 2.0x (0x7FFF = ~4.0x, would saturate)
+        send_sample(24'h080000, 16'h4000, 16'h7FFF, 16'h7FFF, 8'd0);
 
         @(posedge clk);
         @(posedge clk);
@@ -384,28 +389,29 @@ module fuzz_tb();
         wait(rst_n == 1'b1);
         #10;
 
-        // Pre-gain amplifies a small signal (fixed-point: 0x040000 * 0x7FFF = 0x07FFF0)
-        // pos_threshold = 0x2000 << 8 = 0x200000, gained 0x07FFF0 < 0x200000, no clip
-        send_sample(24'h040000, 16'h7FFF, 16'h2000, 16'h7FFF, 8'd0);
+        // Pre-gain amplifies a small signal: 2x (0x4000, FRAC_BITS=13)
+        //   0x040000 * 0x4000 >> 13 = 0x080000
+        // pos_threshold = 0x2000 << 8 = 0x200000, gained 0x080000 < 0x200000, no clip
+        send_sample(24'h040000, 16'h4000, 16'h2000, 16'h7FFF, 8'd0);
 
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
 
-        if (o_tdata == 24'h07FFF0) begin
+        if (o_tdata == 24'h080000) begin
             $display("[PASS] Test 10a: Gain below threshold (no clip, out=0x%06h)", o_tdata);
             num_pass = num_pass + 1;
         end else begin
             $display("[FAIL] Test 10a: Gain below threshold");
-            $display("       expected: ~0x07FFF0, got: 0x%06h (%d)", o_tdata, o_tdata);
+            $display("       expected: 0x080000, got: 0x%06h (%d)", o_tdata, o_tdata);
             num_fail = num_fail + 1;
             failed_tests[num_failed_logged] = "Test 10a: Gain below threshold failed";
             num_failed_logged = num_failed_logged + 1;
         end
 
-        // Same gained value (0x07FFF0), but threshold lowered so gain pushes into clip
-        // pos_threshold = 0x0400 << 8 = 0x040000, gained 0x07FFF0 > 0x040000 -> clip!
-        send_sample(24'h040000, 16'h7FFF, 16'h0400, 16'h7FFF, 8'd0);
+        // Same gained value (0x080000), but threshold lowered so gain pushes into clip
+        // pos_threshold = 0x0400 << 8 = 0x040000, gained 0x080000 > 0x040000 -> clip!
+        send_sample(24'h040000, 16'h4000, 16'h0400, 16'h7FFF, 8'd0);
 
         @(posedge clk);
         @(posedge clk);
@@ -430,8 +436,9 @@ module fuzz_tb();
         wait(rst_n == 1'b1);
         #10;
 
-        // Apply a DC step and observe settling over multiple cycles
-        send_sample(24'h200000, 16'h4000, 16'h7FFF, 16'h7FFF, 8'd0);
+        // Apply a DC step and observe settling over multiple cycles.
+        // Unity gain = 0x2000 (FRAC_BITS=13)
+        send_sample(24'h200000, 16'h2000, 16'h7FFF, 16'h7FFF, 8'd0);
 
         // Wait through pipeline + extra cycles to verify steady state
         repeat(10) @(posedge clk);
