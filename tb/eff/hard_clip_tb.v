@@ -17,8 +17,8 @@ module hard_clip_tb();
   wire signed [23:0] o_tdata;
 
   // ======= DUT EFFECT PARAMETERS (Q-FORMAT) =======
-  reg [15:0] input_gain;         // Q1.14 (unity = 0x4000)
-  reg [15:0] normalized_clip;    // Q0.16 (+/- 1.0)
+  reg [15:0] input_gain;         // Q2.13 signed (unity = 16'h2000 = 1.0)
+  reg [15:0] normalized_clip;    // Q0.15 (+/- 1.0)
 
   // ======= GLOBAL TEST CONTROL VARIABLES =======
   integer num_pass;
@@ -105,7 +105,7 @@ module hard_clip_tb();
       i_tdata = 24'h100000;
       i_tvalid = 1'b1;
       o_tready = 1'b1;
-      input_gain = 16'h4000;        // Unity gain (Q1.14)
+      input_gain = 16'h2000;        // Unity gain (Q2.13)
       normalized_clip = 16'h7FFF;   // High threshold (no clipping)
     end
 
@@ -145,7 +145,7 @@ module hard_clip_tb();
       i_tdata = 24'h100000;
       i_tvalid = 1'b1;
       o_tready = 1'b1;
-      input_gain = 16'h4000;        // Unity Q1.14
+      input_gain = 16'h2000;        // Unity Q2.13
       normalized_clip = 16'h7FFF;   // High threshold (no clipping)
     end
 
@@ -177,7 +177,7 @@ module hard_clip_tb();
       i_tdata = 24'h080000;
       i_tvalid = 1'b1;
       o_tready = 1'b1;
-      input_gain = 16'h7FFF;        // ~+2.0x in signed Q1.14
+      input_gain = 16'h4000;        // +2.0x in signed Q2.13
       normalized_clip = 16'h7FFF;   // No clip
     end
 
@@ -371,25 +371,25 @@ module hard_clip_tb();
       i_tdata = 24'h100000;
       i_tvalid = 1'b1;
       o_tready = 1'b1;
-      input_gain = 16'h7FFF;        // ~+2x gain in signed Q1.14
+      input_gain = 16'h3000;        // +1.5x gain in signed Q2.13
       normalized_clip = 16'h7FFF;   // High threshold (no clipping)
     end
 
     // Calculate tolerance band
-    gain_clip_upper = $signed(24'h1FFFF0) * 1.05;
-    gain_clip_lower = $signed(24'h1FFFF0) * 0.95;
+    gain_clip_upper = $signed(24'h180000) * 1.05;
+    gain_clip_lower = $signed(24'h180000) * 0.95;
 
     @(posedge clk);
     @(posedge clk);
 
     if (o_tdata >= gain_clip_lower && o_tdata <= gain_clip_upper) begin
       $display("[PASS] Test 10: Gain then clip (no clipping)");
-      $display("       in: 0x100000, out: 0x%06h (~2x amplified, no clip)", o_tdata);
+      $display("       in: 0x100000, out: 0x%06h (~1.5x amplified, no clip)", o_tdata);
       num_pass = num_pass + 1;
     end else begin
       $display("[FAIL] Test 10: Gain then clip (no clipping)");
-      $display("       in: 0x100000, expected: ~0x1FFFF0 (%d±5%%), got: 0x%06h (%d)",
-               $signed(24'h1FFFF0), o_tdata, o_tdata);
+      $display("       in: 0x100000, expected: ~0x180000 (%d±5%%), got: 0x%06h (%d)",
+               $signed(24'h180000), o_tdata, o_tdata);
       num_fail = num_fail + 1;
       failed_tests[num_failed_logged] = "Test 10: Gain+clip produced wrong output";
       num_failed_logged = num_failed_logged + 1;
